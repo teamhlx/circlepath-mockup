@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en" x-data="app()" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circlepath — Relationship Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    [x-cloak] { display: none !important; }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .slide-in { animation: slideIn 0.25s ease-out; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+    .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; }
+    .strength-bar { height: 6px; border-radius: 3px; background: #E5E7EB; overflow: hidden; }
+    .strength-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    .nav-item.active { background: rgba(79,70,229,0.12); color: #4F46E5; }
+    .nav-item.active .nav-icon { color: #4F46E5; }
+    .gradient-card { background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); }
+    .gradient-card-2 { background: linear-gradient(135deg, #0EA5E9 0%, #4F46E5 100%); }
+    .gradient-card-3 { background: linear-gradient(135deg, #10B981 0%, #0EA5E9 100%); }
+    .modal-overlay { backdrop-filter: blur(4px); }
+    .coverage-bar { height: 8px; border-radius: 4px; background: #E5E7EB; }
+    .coverage-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .tag { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.2); } }
+    .ring-progress { transform: rotate(-90deg); transform-origin: center; }
+    .step-active { background: #4F46E5; color: white; }
+    .step-done { background: #10B981; color: white; }
+    .step-todo { background: #E5E7EB; color: #9CA3AF; }
+    .intro-flow-step { transition: all 0.3s ease; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            indigo: { 50:'#EEF2FF', 100:'#E0E7FF', 200:'#C7D2FE', 300:'#A5B4FC', 400:'#818CF8', 500:'#6366F1', 600:'#4F46E5', 700:'#4338CA', 800:'#3730A3', 900:'#312E81' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+<!-- MOCKUP BANNER -->
+<div class="bg-amber-500 text-white text-center text-xs font-semibold py-1.5 px-4 z-50 fixed top-0 left-0 right-0">
+  🚧 MOCKUP / PROTOTYPE — Sample data only. Not a live product.
+</div>
+
+<div class="flex h-screen pt-7">
+
+  <!-- SIDEBAR -->
+  <aside class="w-60 bg-white border-r border-gray-100 flex flex-col fixed left-0 top-7 bottom-0 z-40 shadow-sm">
+    <!-- Logo -->
+    <div class="px-5 py-4 border-b border-gray-100">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg gradient-card flex items-center justify-center shadow-sm">
+          <svg class="w-4.5 h-4.5 text-white w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke-width="2.5"/>
+            <circle cx="4" cy="8" r="2" stroke-width="2.5"/>
+            <circle cx="20" cy="8" r="2" stroke-width="2.5"/>
+            <circle cx="7" cy="18" r="2" stroke-width="2.5"/>
+            <circle cx="17" cy="18" r="2" stroke-width="2.5"/>
+            <path d="M6 9.5L10 11M14 11l4-2M9.5 17L11 14M13 14l1.5 3" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-gray-900 text-sm leading-tight">Circlepath</div>
+          <div class="text-xs text-indigo-500 font-medium leading-tight">Relationship Intel</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <button @click="setScreen('dashboard')" :class="{'active': screen==='dashboard'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-4.5 h-4.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
+        Dashboard
+      </button>
+      <button @click="setScreen('connections')" :class="{'active': screen==='connections'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" stroke-width="2"/><path d="M16 3.13a4 4 0 010 7.75" stroke-width="2"/><path d="M21 21v-2a4 4 0 00-3-3.87" stroke-width="2"/></svg>
+        Connections
+        <span class="ml-auto bg-indigo-100 text-indigo-600 text-xs font-semibold px-1.5 py-0.5 rounded-full">47k</span>
+      </button>
+      <button @click="setScreen('icp')" :class="{'active': screen==='icp'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-width="2"/><polyline points="22 4 12 14.01 9 11.01" stroke-width="2"/></svg>
+        ICP Profiles
+        <span class="ml-auto bg-green-100 text-green-600 text-xs font-semibold px-1.5 py-0.5 rounded-full">3</span>
+      </button>
+      <button @click="setScreen('campaigns')" :class="{'active': screen==='campaigns'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 2L11 13" stroke-width="2"/><path d="M22 2L15 22l-4-9-9-4 20-7z" stroke-width="2"/></svg>
+        Campaigns
+        <span class="ml-auto bg-amber-100 text-amber-600 text-xs font-semibold px-1.5 py-0.5 rounded-full">423</span>
+      </button>
+      <button @click="setScreen('campaign_detail')" :class="{'active': screen==='campaign_detail'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" stroke-width="2"/></svg>
+        Campaign Detail
+        <span class="ml-auto bg-green-100 text-green-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">✦</span>
+      </button>
+      <button @click="setScreen('coverage')" :class="{'active': screen==='coverage'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="2"/></svg>
+        Account Coverage
+      </button>
+
+      <div class="pt-4 pb-1 px-3">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Team</div>
+      </div>
+      <button @click="setScreen('team')" :class="{'active': screen==='team'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke-width="2"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke-width="2"/></svg>
+        Team Members
+      </button>
+
+      <div class="pt-4 pb-1 px-3">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Setup</div>
+      </div>
+      <button @click="setScreen('onboarding')" :class="{'active': screen==='onboarding'}" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all">
+        <svg class="nav-icon w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg>
+        Onboarding
+      </button>
+    </nav>
+
+    <!-- User -->
+    <div class="px-3 py-3 border-t border-gray-100">
+      <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+        <div class="w-8 h-8 rounded-full gradient-card flex items-center justify-center text-white text-xs font-bold flex-shrink-0">JP</div>
+        <div class="overflow-hidden">
+          <div class="text-sm font-semibold text-gray-900 truncate">Jason Phillips</div>
+          <div class="text-xs text-gray-400 truncate">CEO · Circlepath</div>
+        </div>
+        <div class="ml-auto flex-shrink-0">
+          <div class="pulse-dot"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 ml-60 overflow-y-auto">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div x-show="screen==='dashboard'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Good afternoon, Jason 👋</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">Your team's network is <span class="text-green-600 font-semibold">actively working</span> for you.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" stroke-width="1.8"/></svg>
+              Filter
+            </button>
+            <button @click="setScreen('connections')" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="2.5"/></svg>
+              Upload Connections
+            </button>
+          </div>
+        </div>
+
+        <!-- Network Summary Banner -->
+        <div class="gradient-card rounded-2xl p-6 text-white mb-6 shadow-lg relative overflow-hidden">
+          <div class="absolute inset-0 opacity-10">
+            <svg viewBox="0 0 400 200" class="w-full h-full"><circle cx="350" cy="50" r="120" fill="white"/><circle cx="50" cy="150" r="80" fill="white"/></svg>
+          </div>
+          <div class="relative z-10">
+            <div class="text-sm font-medium text-indigo-200 mb-1">Team Network Summary</div>
+            <div class="text-4xl font-extrabold mb-1">47,283 connections</div>
+            <div class="text-indigo-200 text-sm">across <span class="text-white font-semibold">12,847 companies</span> — synced from 5 team members</div>
+            <div class="flex items-center gap-6 mt-4">
+              <div>
+                <div class="text-2xl font-bold">2,847</div>
+                <div class="text-xs text-indigo-200 font-medium">ICP Matches</div>
+              </div>
+              <div class="w-px h-10 bg-white/20"></div>
+              <div>
+                <div class="text-2xl font-bold">423</div>
+                <div class="text-xs text-indigo-200 font-medium">Warm Paths</div>
+              </div>
+              <div class="w-px h-10 bg-white/20"></div>
+              <div>
+                <div class="text-2xl font-bold">73%</div>
+                <div class="text-xs text-indigo-200 font-medium">Coverage Score</div>
+              </div>
+              <div class="w-px h-10 bg-white/20"></div>
+              <div>
+                <div class="text-2xl font-bold">$2.4M</div>
+                <div class="text-xs text-indigo-200 font-medium">Pipeline Potential</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Target Accounts</div>
+              <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-extrabold text-gray-900 mb-1">73%</div>
+            <div class="text-xs text-gray-500 mb-3">Coverage across 150 targets</div>
+            <div class="coverage-bar"><div class="coverage-fill bg-indigo-500" style="width:73%"></div></div>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">ICP Matches</div>
+              <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-width="2"/><polyline points="22 4 12 14.01 9 11.01" stroke-width="2"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-extrabold text-gray-900 mb-1">2,847</div>
+            <div class="text-xs text-green-600 font-medium">↑ 142 new this week</div>
+            <div class="mt-3 flex gap-1">
+              <span class="tag bg-green-100 text-green-700">Enterprise CRO ×247</span>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Warm Paths</div>
+              <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-width="2"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-extrabold text-gray-900 mb-1">423</div>
+            <div class="text-xs text-amber-600 font-medium">Ready for activation</div>
+            <div class="mt-3">
+              <div class="text-xs text-gray-500">Avg relationship: <span class="font-semibold text-gray-700">Professional</span></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pending Scoring</div>
+              <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4l3 3" stroke-width="2"/></svg>
+              </div>
+            </div>
+            <div class="text-3xl font-extrabold text-gray-900 mb-1">8,421</div>
+            <div class="text-xs text-purple-600 font-medium">Awaiting team input</div>
+            <button @click="setScreen('connections')" class="mt-3 text-xs font-semibold text-indigo-600 hover:text-indigo-700">Score now →</button>
+          </div>
+        </div>
+
+        <!-- Activity Feed + Quick Actions -->
+        <div class="grid grid-cols-3 gap-6">
+          <!-- Activity Feed -->
+          <div class="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div class="font-semibold text-gray-900">Recent Activity</div>
+              <div class="flex items-center gap-1.5">
+                <div class="pulse-dot"></div>
+                <span class="text-xs text-green-600 font-medium">Live</span>
+              </div>
+            </div>
+            <div class="divide-y divide-gray-50">
+              <template x-for="item in activityFeed" :key="item.id">
+                <div class="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+                  <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5" :class="item.avatarClass" x-text="item.avatar"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm text-gray-700" x-html="item.text"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="item.time"></div>
+                  </div>
+                  <div class="tag flex-shrink-0" :class="item.tagClass" x-text="item.tag"></div>
+                </div>
+              </template>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-50">
+              <button class="text-sm font-medium text-indigo-600 hover:text-indigo-700">View all activity →</button>
+            </div>
+          </div>
+
+          <!-- Quick Actions + Team -->
+          <div class="space-y-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div class="font-semibold text-gray-900 mb-4">Quick Actions</div>
+              <div class="space-y-2.5">
+                <button @click="setScreen('connections')" class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group">
+                  <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="text-sm font-semibold text-gray-800">Upload Connections</div>
+                    <div class="text-xs text-gray-400">LinkedIn CSV sync</div>
+                  </div>
+                </button>
+                <button @click="setScreen('icp')" class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-green-200 hover:bg-green-50 transition-all group">
+                  <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-width="2"/><polyline points="22 4 12 14.01 9 11.01" stroke-width="2"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="text-sm font-semibold text-gray-800">View ICP Matches</div>
+                    <div class="text-xs text-gray-400">2,847 ready</div>
+                  </div>
+                </button>
+                <button @click="setScreen('campaigns')" class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-amber-200 hover:bg-amber-50 transition-all group">
+                  <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke-width="2"/></svg>
+                  </div>
+                  <div class="text-left">
+                    <div class="text-sm font-semibold text-gray-800">Start Campaign</div>
+                    <div class="text-xs text-gray-400">423 warm paths</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Team Leaderboard -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <div class="font-semibold text-gray-900 mb-4">Team Coverage</div>
+              <div class="space-y-3">
+                <template x-for="member in teamMembers" :key="member.name">
+                  <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${member.color}`" x-text="member.initials"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex justify-between items-center mb-1">
+                        <div class="text-xs font-medium text-gray-700 truncate" x-text="member.name"></div>
+                        <div class="text-xs text-gray-400 font-medium" x-text="member.connections.toLocaleString()"></div>
+                      </div>
+                      <div class="coverage-bar"><div class="coverage-fill" :style="`width:${member.pct}%; background:${member.color}`"></div></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CONNECTIONS ==================== -->
+    <div x-show="screen==='connections'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <!-- ICP Scoring Prompt Banner -->
+        <div x-show="!icpBannerDismissed" class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl p-4 mb-5 flex items-center gap-4 shadow-md">
+          <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">🎯</div>
+          <div class="flex-1">
+            <div class="text-white font-semibold text-sm">12 new ICP matches need scoring — these are your strongest potential paths</div>
+            <div class="text-indigo-200 text-xs mt-0.5">You don't need to score all 47k connections — just these high-priority matches surfaced by ICP targeting</div>
+          </div>
+          <button @click="connStrengthFilter='unscored'; connIcpFilter='enterprise_cro'" class="px-4 py-2 bg-white text-indigo-700 text-sm font-bold rounded-lg hover:bg-indigo-50 transition-colors flex-shrink-0 shadow-sm">Score Now →</button>
+          <button @click="icpBannerDismissed=true" class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors flex-shrink-0 text-white text-xs">✕</button>
+        </div>
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Connections</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">47,283 total · <span class="text-green-600 font-medium">2,847 ICP matches</span> · <span class="text-amber-600 font-medium">423 warm paths</span></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7" stroke-width="2"/></svg>
+              Group by Member
+            </button>
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 flex items-center gap-2 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-width="2"/></svg>
+              Import CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4 flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-2 flex-1 min-w-48">
+            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2"/></svg>
+            <input type="text" placeholder="Search by name, company, title..." class="text-sm text-gray-700 border-none outline-none flex-1 placeholder-gray-400" x-model="connSearch" />
+          </div>
+          <div class="w-px h-5 bg-gray-200"></div>
+          <select x-model="connIcpFilter" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 outline-none cursor-pointer hover:border-indigo-300 transition-colors">
+            <option value="">All Profiles</option>
+            <option value="enterprise_cro">Enterprise CRO</option>
+            <option value="smb_cfo">SMB CFO</option>
+            <option value="vp_eng">Series B VP Eng</option>
+          </select>
+          <select x-model="connStrengthFilter" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 outline-none cursor-pointer hover:border-indigo-300 transition-colors">
+            <option value="">All Strengths</option>
+            <option value="strong">Strong</option>
+            <option value="moderate">Moderate</option>
+            <option value="weak">Weak</option>
+            <option value="unscored">Unscored</option>
+          </select>
+          <select class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 outline-none cursor-pointer hover:border-indigo-300 transition-colors">
+            <option>All Members</option>
+            <option>Jason Phillips</option>
+            <option>Sarah Chen</option>
+            <option>Mike Rodriguez</option>
+            <option>Emily Watson</option>
+            <option>Luke Park</option>
+          </select>
+          <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer ml-1">
+            <input type="checkbox" x-model="connUnscoredOnly" class="rounded border-gray-300 text-indigo-600 w-4 h-4 cursor-pointer" />
+            <span>Unscored only</span>
+          </label>
+          <div class="ml-auto text-sm text-gray-400 font-medium" x-text="filteredConnections.length + ' results'"></div>
+        </div>
+
+        <!-- Connections Table -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-100 bg-gray-50/60">
+                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Person</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Connected Via</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Strength</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">ICP Match</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Activity</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <template x-for="conn in filteredConnections" :key="conn.id">
+                <tr class="hover:bg-gray-50/60 transition-colors cursor-pointer" @click="openDetail(conn)">
+                  <td class="px-5 py-3.5">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${conn.avatarColor}`" x-text="conn.initials"></div>
+                      <div>
+                        <div class="text-sm font-semibold text-gray-900" x-text="conn.name"></div>
+                        <div class="text-xs text-gray-400" x-text="conn.title"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600" x-text="conn.company[0]"></div>
+                      <span class="text-sm text-gray-700 font-medium" x-text="conn.company"></span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3.5">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${conn.ownerColor}`" x-text="conn.ownerInitials"></div>
+                      <span class="text-xs text-gray-600" x-text="conn.owner"></span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3.5">
+                    <span class="tag" :class="conn.strengthClass" x-text="conn.strength"></span>
+                  </td>
+                  <td class="px-4 py-3.5">
+                    <span x-show="conn.icpMatch" class="tag bg-green-100 text-green-700">✓ ICP Match</span>
+                    <span x-show="!conn.icpMatch" class="tag bg-gray-100 text-gray-400">—</span>
+                  </td>
+                  <td class="px-4 py-3.5 text-xs text-gray-400" x-text="conn.lastActivity"></td>
+                  <td class="px-4 py-3.5">
+                    <button class="text-xs font-medium text-indigo-600 hover:text-indigo-700 whitespace-nowrap">View →</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+            <div class="text-sm text-gray-400">Showing <span class="font-medium text-gray-700" x-text="filteredConnections.length"></span> of 47,283 connections</div>
+            <div class="flex items-center gap-1">
+              <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">← Prev</button>
+              <button class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg font-medium">1</button>
+              <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">2</button>
+              <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">3</button>
+              <span class="px-2 text-gray-400">…</span>
+              <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Next →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ICP SETUP ==================== -->
+    <div x-show="screen==='icp'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">ICP Profiles</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">Define your Ideal Customer Profile — Circlepath will find matches in your team's network.</p>
+          </div>
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="2.5"/></svg>
+            New ICP Profile
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-8">
+          <template x-for="icp in icpProfiles" :key="icp.name">
+            <div @click="selectedIcp = icp" :class="selectedIcp && selectedIcp.name===icp.name ? 'ring-2 ring-indigo-500 border-indigo-200' : 'border-gray-100'" class="bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition-all cursor-pointer">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="font-semibold text-gray-900 text-sm" x-text="icp.name"></div>
+                  <div class="text-xs text-gray-400 mt-0.5" x-text="icp.description"></div>
+                </div>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="icp.iconBg">
+                  <svg class="w-4 h-4" :class="icp.iconColor" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><circle cx="12" cy="12" r="6" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke-width="2"/></svg>
+                </div>
+              </div>
+              <div class="text-3xl font-extrabold" :class="icp.countColor" x-text="icp.matchCount.toLocaleString()"></div>
+              <div class="text-xs text-gray-400 mb-3">matches in your network</div>
+              <div class="coverage-bar"><div class="coverage-fill" :style="`width:${icp.coverage}%; background-color:${icp.barColor}`"></div></div>
+              <div class="flex items-center justify-between mt-1.5">
+                <div class="text-xs text-gray-400" x-text="`${icp.coverage}% of target companies covered`"></div>
+                <div class="flex gap-1">
+                  <template x-for="tag in icp.tags">
+                    <span class="tag bg-gray-100 text-gray-500" x-text="tag"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- ICP Builder -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-gray-900">ICP Criteria Builder</div>
+              <div class="text-xs text-gray-400 mt-0.5">Editing: <span class="font-medium text-indigo-600" x-text="selectedIcp ? selectedIcp.name : 'Enterprise CRO'"></span></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg">
+                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-show="icpRefreshing"><circle cx="12" cy="12" r="10" stroke-width="2" class="opacity-25"/><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75" fill="currentColor"/></svg>
+                <span class="text-sm font-semibold" x-text="selectedIcp ? selectedIcp.matchCount.toLocaleString() + ' matches' : '247 matches'"></span>
+                <span class="text-xs text-indigo-400">live preview</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 grid grid-cols-2 gap-6">
+            <!-- Left: Criteria -->
+            <div class="space-y-5">
+              <div>
+                <label class="text-sm font-semibold text-gray-700 block mb-2">Industries</label>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="ind in industries">
+                    <button @click="ind.selected = !ind.selected" :class="ind.selected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'" class="px-3 py-1.5 text-xs font-medium border rounded-lg transition-all" x-text="ind.name"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-gray-700 block mb-2">Company Size (Employees)</label>
+                <div class="flex items-center gap-3">
+                  <div class="flex-1">
+                    <input type="range" min="1" max="10000" value="100" class="w-full accent-indigo-600" />
+                    <div class="flex justify-between text-xs text-gray-400 mt-1"><span>1</span><span>100–5000</span><span>10k+</span></div>
+                  </div>
+                </div>
+                <div class="flex gap-2 mt-2">
+                  <button class="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600 hover:border-indigo-300">Startup (1–50)</button>
+                  <button class="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white border border-indigo-600 rounded-lg">Mid-market (51–500)</button>
+                  <button class="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600 hover:border-indigo-300">Enterprise (500+)</button>
+                </div>
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-gray-700 block mb-2">Title / Seniority</label>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="t in titles">
+                    <button @click="t.selected = !t.selected" :class="t.selected ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'" class="px-3 py-1.5 text-xs font-medium border rounded-lg transition-all" x-text="t.name"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-gray-700 block mb-2">Geography</label>
+                <div class="flex flex-wrap gap-2">
+                  <button class="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white border border-indigo-600 rounded-lg">North America</button>
+                  <button class="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600">Europe</button>
+                  <button class="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600">APAC</button>
+                  <button class="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-lg text-gray-600">Remote</button>
+                </div>
+              </div>
+            </div>
+            <!-- Right: Preview -->
+            <div class="bg-gray-50 rounded-xl p-5">
+              <div class="font-semibold text-gray-900 mb-4 text-sm">Match Preview</div>
+              <div class="space-y-2">
+                <template x-for="preview in icpPreviews">
+                  <div class="bg-white rounded-lg p-3 border border-gray-100 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${preview.color}`" x-text="preview.initials"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-semibold text-gray-900" x-text="preview.name"></div>
+                      <div class="text-xs text-gray-400" x-text="`${preview.title} · ${preview.company}`"></div>
+                    </div>
+                    <span class="tag bg-green-100 text-green-700 flex-shrink-0">✓ Match</span>
+                  </div>
+                </template>
+              </div>
+              <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
+                <div class="text-xs font-semibold text-indigo-700 mb-1">Why these match:</div>
+                <ul class="text-xs text-indigo-600 space-y-1">
+                  <li>• Title matches "CRO" or "Chief Revenue Officer"</li>
+                  <li>• Company size 100–5,000 employees</li>
+                  <li>• Industry: SaaS / B2B Software</li>
+                  <li>• North America geography</li>
+                </ul>
+              </div>
+              <button @click="setScreen('campaigns')" class="mt-4 w-full py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                Activate This ICP → Campaign
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGNS ==================== -->
+    <div x-show="screen==='campaigns'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Campaign Activation</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">423 warm paths ready for outreach — review and activate.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Save Draft</button>
+            <button class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 shadow-sm flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke-width="2"/></svg>
+              Activate Campaign
+            </button>
+          </div>
+        </div>
+
+        <!-- Split View -->
+        <div class="grid grid-cols-2 gap-5 mb-6">
+          <!-- Strong Connections -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div class="px-5 py-4 border-b border-gray-100 bg-green-50/50 rounded-t-xl">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <div class="font-semibold text-gray-900 text-sm">Strong Connections — Manual Outreach</div>
+                <span class="tag bg-green-100 text-green-700 ml-auto">87 contacts</span>
+              </div>
+              <div class="text-xs text-gray-500">These people know you or your team. Personal outreach recommended.</div>
+            </div>
+            <div class="p-4 space-y-2.5">
+              <template x-for="c in strongConnections">
+                <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-green-200 hover:bg-green-50/30 transition-all">
+                  <input type="checkbox" checked class="rounded border-gray-300 text-green-600 w-4 h-4 cursor-pointer" />
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${c.color}`" x-text="c.initials"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-gray-800" x-text="c.name"></div>
+                    <div class="text-xs text-gray-400" x-text="`${c.title} · ${c.company}`"></div>
+                  </div>
+                  <div class="text-right">
+                    <div class="tag bg-green-100 text-green-700 text-xs" x-text="c.strength"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="'via ' + c.owner"></div>
+                  </div>
+                </div>
+              </template>
+              <div class="text-xs text-gray-400 text-center py-1">+ 82 more strong connections</div>
+            </div>
+          </div>
+
+          <!-- Weak/Unknown -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div class="px-5 py-4 border-b border-gray-100 bg-blue-50/50 rounded-t-xl">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-2.5 h-2.5 rounded-full bg-blue-400"></div>
+                <div class="font-semibold text-gray-900 text-sm">Weak / Unknown — Automated Sequence</div>
+                <span class="tag bg-blue-100 text-blue-700 ml-auto">336 contacts</span>
+              </div>
+              <div class="text-xs text-gray-500">Lower relationship strength. AI-personalized automated sequence recommended.</div>
+            </div>
+            <div class="p-4 space-y-2.5">
+              <template x-for="c in weakConnections">
+                <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
+                  <input type="checkbox" checked class="rounded border-gray-300 text-blue-600 w-4 h-4 cursor-pointer" />
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${c.color}`" x-text="c.initials"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-gray-800" x-text="c.name"></div>
+                    <div class="text-xs text-gray-400" x-text="`${c.title} · ${c.company}`"></div>
+                  </div>
+                  <div class="text-right">
+                    <div class="tag" :class="c.strengthClass" x-text="c.strength"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="'via ' + c.owner"></div>
+                  </div>
+                </div>
+              </template>
+              <div class="text-xs text-gray-400 text-center py-1">+ 331 more connections</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campaign Settings + AI Preview -->
+        <div class="grid grid-cols-3 gap-5">
+          <!-- Settings -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="font-semibold text-gray-900 mb-4 text-sm">Campaign Settings</div>
+            <div class="space-y-4">
+              <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Campaign Tool</label>
+                <div class="space-y-2">
+                  <label class="flex items-center gap-3 p-2.5 border border-indigo-200 bg-indigo-50 rounded-lg cursor-pointer">
+                    <input type="radio" name="tool" checked class="text-indigo-600 w-4 h-4" />
+                    <div>
+                      <div class="text-sm font-semibold text-gray-800">HeyReach</div>
+                      <div class="text-xs text-gray-400">LinkedIn automation</div>
+                    </div>
+                  </label>
+                  <label class="flex items-center gap-3 p-2.5 border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300">
+                    <input type="radio" name="tool" class="text-indigo-600 w-4 h-4" />
+                    <div>
+                      <div class="text-sm font-semibold text-gray-800">SmartLead</div>
+                      <div class="text-xs text-gray-400">Email sequences</div>
+                    </div>
+                  </label>
+                  <label class="flex items-center gap-3 p-2.5 border border-gray-200 rounded-lg cursor-pointer hover:border-gray-300">
+                    <input type="radio" name="tool" class="text-indigo-600 w-4 h-4" />
+                    <div>
+                      <div class="text-sm font-semibold text-gray-800">Manual CRM Export</div>
+                      <div class="text-xs text-gray-400">CSV / Salesforce</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Executive Approval</label>
+                <div class="flex items-center gap-2">
+                  <div class="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke-width="2.5"/></svg>
+                  </div>
+                  <span class="text-sm text-gray-700">Require Jason's approval</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Message Preview -->
+          <div class="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center">
+                <svg class="w-3.5 h-3.5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              </div>
+              <div class="font-semibold text-gray-900 text-sm">AI Message Preview</div>
+              <div class="ml-auto flex items-center gap-2">
+                <span class="tag bg-purple-100 text-purple-700">Personalized per contact</span>
+                <button class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Regenerate ↺</button>
+              </div>
+            </div>
+
+            <!-- Message card -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-bold">JP</div>
+                <div class="text-xs text-gray-500">From: <span class="font-medium text-gray-700">Jason Phillips</span></div>
+                <div class="text-xs text-gray-400">→</div>
+                <div class="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-xs text-white font-bold">MK</div>
+                <div class="text-xs text-gray-500">To: <span class="font-medium text-gray-700">Marcus Kim, CRO @ Stripe</span></div>
+                <div class="tag bg-green-100 text-green-700 ml-auto">Strong connection</div>
+              </div>
+              <div class="text-sm text-gray-700 leading-relaxed">
+                <p class="mb-2">Hey Marcus,</p>
+                <p class="mb-2">Hope you're crushing it over at Stripe — congrats on the Series H close, that was a monster raise.</p>
+                <p class="mb-2">I'm building <span class="font-semibold text-indigo-700">Circlepath</span> — we help revenue teams turn their collective LinkedIn networks into a mapped relationship graph, then activate warm outreach at scale. We just closed our first 10 design partners, and given what you're building at Stripe, thought it might be relevant.</p>
+                <p class="mb-2">Would love 20 minutes to get your POV as someone who's scaled go-to-market — no pitch, just your brain.</p>
+                <p>Worth a quick chat?</p>
+              </div>
+              <div class="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                <svg class="w-3.5 h-3.5 text-purple-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                AI-personalized using: company context, relationship strength, recent news (Stripe Series H), ICP match reason
+              </div>
+            </div>
+
+            <!-- Approval Queue -->
+            <div class="mt-4">
+              <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Approval Queue (Strong connections require exec sign-off)</div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3 p-2.5 bg-amber-50 border border-amber-100 rounded-lg">
+                  <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke-width="2"/></svg>
+                  <div class="text-xs text-amber-700 flex-1"><span class="font-semibold">23 messages</span> pending your review before sending to strong connections</div>
+                  <button class="px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600">Review All</button>
+                </div>
+                <div class="flex items-center gap-3 p-2.5 bg-green-50 border border-green-100 rounded-lg">
+                  <svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke-width="2"/><polyline points="22 4 12 14.01 9 11.01" stroke-width="2"/></svg>
+                  <div class="text-xs text-green-700 flex-1"><span class="font-semibold">336 automated messages</span> ready to send — auto-approved for weak/unscored connections</div>
+                  <button class="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700">Send Now</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ACCOUNT COVERAGE ==================== -->
+    <div x-show="screen==='coverage'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Account Coverage</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">Target account penetration — who do we know at each company?</p>
+          </div>
+        </div>
+
+        <!-- Who do we know? Search -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2"/></svg>
+            <input type="text" placeholder='Who do we know at... (e.g., "Stripe", "Notion", "Figma")' class="flex-1 text-sm text-gray-700 outline-none placeholder-gray-400 font-medium" />
+            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">Search Network</button>
+          </div>
+        </div>
+
+        <!-- Account List -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+          <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-3">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex-1">Company</div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Connections</div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Strong</div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex-1">Coverage</div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Buying Committee</div>
+            <div class="w-20"></div>
+          </div>
+          <div class="divide-y divide-gray-50">
+            <template x-for="acct in targetAccounts" :key="acct.name">
+              <div @click="selectedAccount = acct" :class="selectedAccount && selectedAccount.name===acct.name ? 'bg-indigo-50/40' : 'hover:bg-gray-50'" class="px-5 py-4 flex items-center gap-3 cursor-pointer transition-colors">
+                <div class="flex-1 flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-sm text-gray-600 flex-shrink-0" x-text="acct.name[0]"></div>
+                  <div>
+                    <div class="text-sm font-semibold text-gray-900" x-text="acct.name"></div>
+                    <div class="text-xs text-gray-400" x-text="acct.industry + ' · ' + acct.size"></div>
+                  </div>
+                </div>
+                <div class="w-28 text-sm font-semibold text-gray-800" x-text="acct.connections + ' people'"></div>
+                <div class="w-24">
+                  <span class="tag bg-green-100 text-green-700" x-text="acct.strong + ' strong'"></span>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <div class="coverage-bar flex-1"><div class="coverage-fill" :style="`width:${acct.coverage}%; background:${acct.coverageColor}`"></div></div>
+                    <span class="text-xs font-semibold text-gray-700 w-8" x-text="acct.coverage + '%'"></span>
+                  </div>
+                </div>
+                <div class="w-28">
+                  <div class="flex gap-1 flex-wrap">
+                    <template x-for="role in acct.roles">
+                      <span class="tag text-xs" :class="role.known ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'" x-text="role.name"></span>
+                    </template>
+                  </div>
+                </div>
+                <div class="w-20 text-right">
+                  <button class="text-xs font-medium text-indigo-600 hover:text-indigo-700">Drill in →</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Account Detail Panel -->
+        <div x-show="selectedAccount" x-cloak class="bg-white rounded-xl border border-indigo-100 shadow-sm slide-in">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-base text-gray-600" x-text="selectedAccount && selectedAccount.name[0]"></div>
+            <div>
+              <div class="font-bold text-gray-900" x-text="selectedAccount && selectedAccount.name"></div>
+              <div class="text-xs text-gray-400" x-text="selectedAccount && (selectedAccount.industry + ' · ' + selectedAccount.size)"></div>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <button @click="setScreen('campaigns')" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Activate Outreach</button>
+              <button @click="selectedAccount=null" class="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-lg hover:bg-gray-50">✕</button>
+            </div>
+          </div>
+          <!-- Network Overlap Visualization -->
+          <div x-show="selectedAccount" class="px-6 pt-4 pb-2">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+              <div class="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-3">Team Network Overlap</div>
+              <div class="flex items-center gap-3 flex-wrap">
+                <template x-for="overlap in (selectedAccount && selectedAccount.overlapMembers || [])" :key="overlap.name">
+                  <div class="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-indigo-100 shadow-sm">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${overlap.color}`" x-text="overlap.initials"></div>
+                    <span class="text-xs font-semibold text-gray-700" x-text="overlap.name"></span>
+                    <span class="text-xs text-gray-400">·</span>
+                    <span class="text-xs font-bold" :class="overlap.count >= 3 ? 'text-green-600' : overlap.count >= 2 ? 'text-indigo-600' : 'text-gray-500'" x-text="overlap.count + ' conn.'"></span>
+                  </div>
+                </template>
+                <template x-if="selectedAccount && selectedAccount.sharedConnections > 0">
+                  <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" stroke-width="2"/><path d="M10.172 13.828a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.101-1.1" stroke-width="2"/></svg>
+                    <span class="text-xs font-semibold text-amber-700" x-text="selectedAccount.sharedConnections + ' shared connection' + (selectedAccount.sharedConnections > 1 ? 's' : '')"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="p-6 grid grid-cols-3 gap-6" x-show="selectedAccount">
+            <div class="col-span-2">
+              <div class="text-sm font-semibold text-gray-700 mb-3">Team Connections at <span x-text="selectedAccount && selectedAccount.name"></span></div>
+              <div class="space-y-2">
+                <template x-for="conn in (selectedAccount && selectedAccount.teamConnections || [])">
+                  <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 transition-colors">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${conn.ownerColor}`" x-text="conn.ownerInitials"></div>
+                    <div class="text-xs text-gray-400 w-24 flex-shrink-0" x-text="conn.owner + ' →'"></div>
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${conn.color}`" x-text="conn.initials"></div>
+                    <div class="flex-1">
+                      <div class="text-sm font-semibold text-gray-800" x-text="conn.name"></div>
+                      <div class="text-xs text-gray-400" x-text="conn.title"></div>
+                    </div>
+                    <span class="tag" :class="conn.strengthClass" x-text="conn.strength"></span>
+                    <span class="tag bg-purple-100 text-purple-700" x-text="conn.role"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-gray-700 mb-3">Buying Committee</div>
+              <div class="space-y-2">
+                <template x-for="bm in (selectedAccount && selectedAccount.buyingCommittee || [])">
+                  <div class="flex items-center gap-2 p-2.5 rounded-lg border" :class="bm.covered ? 'border-green-200 bg-green-50/50' : 'border-gray-100'">
+                    <div class="w-2 h-2 rounded-full flex-shrink-0" :class="bm.covered ? 'bg-green-500' : 'bg-gray-300'"></div>
+                    <div>
+                      <div class="text-xs font-semibold text-gray-800" x-text="bm.role"></div>
+                      <div class="text-xs text-gray-400" x-text="bm.covered ? bm.name : 'Not covered'"></div>
+                    </div>
+                    <span x-show="bm.covered" class="tag bg-green-100 text-green-600 ml-auto">✓</span>
+                    <span x-show="!bm.covered" class="tag bg-gray-100 text-gray-400 ml-auto">Gap</span>
+                  </div>
+                </template>
+              </div>
+              <div class="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                <div class="text-xs font-semibold text-amber-700 mb-1">⚠ Coverage Gap</div>
+                <div class="text-xs text-amber-600">No known connection to CFO or Finance. Consider LinkedIn outreach.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGN DETAIL ==================== -->
+    <div x-show="screen==='campaign_detail'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <!-- Campaign Header -->
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <button @click="setScreen('campaigns')" class="text-gray-400 hover:text-gray-600 text-sm flex items-center gap-1">← Campaigns</button>
+              <span class="text-gray-300">/</span>
+              <span class="text-gray-500 text-sm font-medium">Series B Fintech CFOs</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Series B Fintech CFOs</h1>
+            <div class="flex items-center gap-2 mt-2 flex-wrap">
+              <span class="tag bg-indigo-100 text-indigo-700">Industry: Fintech</span>
+              <span class="tag bg-purple-100 text-purple-700">Stage: Series B</span>
+              <span class="tag bg-blue-100 text-blue-700">Title: CFO / VP Finance</span>
+              <span class="tag bg-teal-100 text-teal-700">Size: 50–500 employees</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Edit ICP</button>
+            <button class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 shadow-sm flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke-width="2"/></svg>
+              Send Outreach
+            </button>
+          </div>
+        </div>
+
+        <!-- Campaign Stats + Coverage Ring -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-2.5 h-2.5 rounded-full bg-green-400 pulse-dot"></div>
+              <span class="text-xs font-semibold text-green-600 uppercase tracking-wide">Active</span>
+            </div>
+            <div class="text-3xl font-extrabold text-gray-900">12</div>
+            <div class="text-xs text-gray-500 mt-1">Prospects enrolled</div>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Meetings Booked</div>
+            <div class="text-3xl font-extrabold text-indigo-600">3</div>
+            <div class="text-xs text-gray-500 mt-1">25% conversion rate</div>
+          </div>
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Target Accounts</div>
+            <div class="text-3xl font-extrabold text-gray-900">15</div>
+            <div class="text-xs text-gray-500 mt-1">in campaign scope</div>
+          </div>
+          <!-- Coverage Ring -->
+          <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="relative w-16 h-16 flex-shrink-0">
+              <svg class="w-16 h-16" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#E5E7EB" stroke-width="3"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#4F46E5" stroke-width="3"
+                  stroke-dasharray="53 88" stroke-dashoffset="0"
+                  class="ring-progress" style="transform:rotate(-90deg);transform-origin:50% 50%"/>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-xs font-extrabold text-indigo-700">53%</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-gray-900">8 of 15</div>
+              <div class="text-xs text-gray-500 leading-tight">accounts<br/>covered</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- THE MONEY SHOT: Warm Paths Section -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-violet-600">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-bold text-white">✨ Your Team's Warm Paths Into This Campaign</h2>
+                <p class="text-indigo-200 text-sm mt-0.5">People your team already knows — at your exact target accounts</p>
+              </div>
+              <div class="flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
+                <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" stroke-width="2"/></svg>
+                <span class="text-white font-bold text-sm">10 warm paths found</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coverage Summary Bar -->
+          <div class="px-6 py-3 bg-indigo-50/50 border-b border-indigo-100 flex items-center justify-between">
+            <div class="text-sm text-indigo-700 font-medium">Your team covers <strong>8 of 15</strong> target accounts in this campaign</div>
+            <div class="flex items-center gap-2">
+              <div class="w-48 bg-indigo-100 rounded-full h-2">
+                <div class="h-2 rounded-full bg-indigo-600" style="width:53%"></div>
+              </div>
+              <span class="text-xs font-semibold text-indigo-700">53% coverage</span>
+            </div>
+          </div>
+
+          <!-- Team Member Groups -->
+          <div class="divide-y divide-gray-50">
+            <template x-for="member in campaignWarmPaths" :key="member.name">
+              <div class="px-6 py-4">
+                <!-- Member Header -->
+                <div @click="member.expanded = !member.expanded" class="flex items-center gap-4 cursor-pointer group mb-3">
+                  <div class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-sm flex-shrink-0" :style="`background:${member.color}`" x-text="member.initials"></div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-gray-900" x-text="member.name"></span>
+                      <span class="text-gray-400 text-sm" x-text="'(' + member.role + ')'"></span>
+                      <span class="tag bg-indigo-100 text-indigo-700" x-text="member.connections.length + ' connections match'"></span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-400 font-medium" x-text="member.connections.filter(c=>c.strength==='Strong').length + ' strong'"></span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform" :class="member.expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-width="2"/></svg>
+                  </div>
+                </div>
+
+                <!-- Connection Rows -->
+                <div x-show="member.expanded" class="space-y-2 pl-13" style="padding-left:3.25rem">
+                  <template x-for="conn in member.connections" :key="conn.name">
+                    <div class="flex items-center gap-3 p-3.5 rounded-xl border bg-gray-50/60 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all">
+                      <!-- Avatar + Name -->
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" :style="`background:${conn.avatarColor}`" x-text="conn.initials"></div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-gray-900" x-text="conn.name"></div>
+                        <div class="text-xs text-gray-400" x-text="conn.title + ' · ' + conn.company"></div>
+                      </div>
+                      <!-- Strength Badge -->
+                      <div class="flex-shrink-0">
+                        <span class="tag" :class="conn.strength === 'Strong' ? 'bg-green-100 text-green-800' : conn.strength === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500'" x-text="conn.strength"></span>
+                      </div>
+                      <!-- ICP Match Score -->
+                      <div class="w-20 flex-shrink-0 text-center">
+                        <div class="text-xs font-bold" :class="conn.icpScore >= 90 ? 'text-green-600' : conn.icpScore >= 70 ? 'text-indigo-600' : 'text-gray-400'" x-text="conn.icpScore + '%'"></div>
+                        <div class="text-xs text-gray-400">ICP match</div>
+                      </div>
+                      <!-- Action Button -->
+                      <button
+                        :class="conn.strength === 'Strong' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'border border-indigo-200 text-indigo-700 hover:bg-indigo-50'"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+                        x-text="conn.strength === 'Strong' ? 'Request Intro' : 'Add to Sequence'"
+                      ></button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Uncovered Accounts -->
+          <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/40">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">⚠ Accounts With No Warm Path (7 of 15)</div>
+            <div class="flex flex-wrap gap-2">
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Brex</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Mercury</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Ramp</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Pipe</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Capchase</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Parafin</span>
+              <span class="tag bg-red-50 text-red-600 border border-red-100">Arc</span>
+              <button class="tag bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors">+ Expand team network →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ONBOARDING ==================== -->
+    <div x-show="screen==='onboarding'" x-cloak class="fade-in">
+      <div class="px-8 py-6 max-w-3xl mx-auto">
+        <div class="mb-8 text-center">
+          <div class="w-14 h-14 gradient-card rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke-width="2.5"/><circle cx="4" cy="8" r="2" stroke-width="2.5"/><circle cx="20" cy="8" r="2" stroke-width="2.5"/><circle cx="7" cy="18" r="2" stroke-width="2.5"/><circle cx="17" cy="18" r="2" stroke-width="2.5"/><path d="M6 9.5L10 11M14 11l4-2M9.5 17L11 14M13 14l1.5 3" stroke-width="1.8"/></svg>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900">Get Your Network Into Circlepath</h1>
+          <p class="text-gray-500 mt-1 text-sm">Follow these 4 steps to import your LinkedIn connections. Takes about 5 minutes of your time.</p>
+        </div>
+
+        <!-- Progress Dots -->
+        <div class="flex items-center justify-center gap-2 mb-8">
+          <template x-for="i in [1,2,3,4]">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                :class="onboardingStep > i ? 'step-done' : onboardingStep === i ? 'step-active' : 'step-todo'"
+                x-text="onboardingStep > i ? '✓' : i"
+              ></div>
+              <div x-show="i < 4" class="w-12 h-0.5" :class="onboardingStep > i ? 'bg-green-400' : 'bg-gray-200'"></div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Step Cards -->
+        <div class="space-y-4">
+
+          <!-- Step 1 -->
+          <div :class="onboardingStep === 1 ? 'ring-2 ring-indigo-400 shadow-md' : 'opacity-60'" class="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all">
+            <div class="px-6 py-4 flex items-center gap-4 cursor-pointer" @click="onboardingStep=1">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" :class="onboardingStep > 1 ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'">
+                <span x-show="onboardingStep <= 1">1</span>
+                <span x-show="onboardingStep > 1">✓</span>
+              </div>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">Request Your LinkedIn Export</div>
+                <div class="text-xs text-gray-400 mt-0.5">Go to LinkedIn Settings and request a data export</div>
+              </div>
+              <span x-show="onboardingStep > 1" class="tag bg-green-100 text-green-700">Done</span>
+            </div>
+            <div x-show="onboardingStep === 1" class="px-6 pb-6">
+              <!-- Screenshot-style card -->
+              <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                <div class="bg-gray-100 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+                  <div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-yellow-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div>
+                  <div class="flex-1 bg-white rounded-md text-xs text-gray-400 px-3 py-1 text-center">linkedin.com/settings/</div>
+                </div>
+                <div class="p-4">
+                  <div class="text-sm font-semibold text-gray-800 mb-3">⚙ LinkedIn Settings &amp; Privacy</div>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-500">Account preferences</div>
+                    <div class="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-500">Sign in &amp; security</div>
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-indigo-50 border border-indigo-200">
+                      <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2"/></svg>
+                      <span class="text-xs font-semibold text-indigo-700">Data privacy → Get a copy of your data</span>
+                      <span class="ml-auto text-xs bg-yellow-400 text-yellow-900 font-bold px-2 py-0.5 rounded-full">← Click here</span>
+                    </div>
+                    <div class="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-500">Visibility</div>
+                  </div>
+                  <div class="mt-3 p-3 bg-indigo-600 rounded-lg text-xs text-white font-medium">Select "Connections" and click "Request archive"</div>
+                </div>
+              </div>
+              <button @click="onboardingStep=2" class="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">I've requested my export →</button>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div :class="onboardingStep === 2 ? 'ring-2 ring-indigo-400 shadow-md' : 'opacity-60'" class="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all">
+            <div class="px-6 py-4 flex items-center gap-4 cursor-pointer" @click="onboardingStep >= 2 && (onboardingStep=2)">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" :class="onboardingStep > 2 ? 'bg-green-100 text-green-700' : onboardingStep === 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'">
+                <span x-show="onboardingStep <= 2">2</span>
+                <span x-show="onboardingStep > 2">✓</span>
+              </div>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">Wait for LinkedIn's Email</div>
+                <div class="text-xs text-gray-400 mt-0.5">LinkedIn will email you a download link — usually within 24–72 hours</div>
+              </div>
+              <span x-show="onboardingStep > 2" class="tag bg-green-100 text-green-700">Done</span>
+            </div>
+            <div x-show="onboardingStep === 2" class="px-6 pb-6">
+              <div class="flex items-center justify-center py-6">
+                <div class="text-center">
+                  <div class="w-20 h-20 rounded-2xl bg-indigo-50 border-2 border-indigo-200 border-dashed flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-width="1.5"/></svg>
+                  </div>
+                  <div class="text-base font-semibold text-gray-800">Waiting for email from LinkedIn</div>
+                  <div class="text-sm text-gray-400 mt-1">Check your inbox for: <span class="font-medium text-indigo-600">"Your LinkedIn data export is ready"</span></div>
+                  <div class="mt-4 flex items-center justify-center gap-2">
+                    <div class="flex gap-1">
+                      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:0ms"></div>
+                      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:150ms"></div>
+                      <div class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style="animation-delay:300ms"></div>
+                    </div>
+                    <span class="text-xs text-gray-400">Typically arrives within 24–72 hours</span>
+                  </div>
+                </div>
+              </div>
+              <button @click="onboardingStep=3" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">Got the email →</button>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div :class="onboardingStep === 3 ? 'ring-2 ring-indigo-400 shadow-md' : 'opacity-60'" class="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all">
+            <div class="px-6 py-4 flex items-center gap-4 cursor-pointer" @click="onboardingStep >= 3 && (onboardingStep=3)">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" :class="onboardingStep > 3 ? 'bg-green-100 text-green-700' : onboardingStep === 3 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'">
+                <span x-show="onboardingStep <= 3">3</span>
+                <span x-show="onboardingStep > 3">✓</span>
+              </div>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">Forward to connections@circlepath.ai</div>
+                <div class="text-xs text-gray-400 mt-0.5">Forward the LinkedIn email (with the attached zip file) to us</div>
+              </div>
+              <span x-show="onboardingStep > 3" class="tag bg-green-100 text-green-700">Done</span>
+            </div>
+            <div x-show="onboardingStep === 3" class="px-6 pb-6">
+              <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden mb-4">
+                <div class="bg-gray-100 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                  <div class="flex gap-1.5"><div class="w-3 h-3 rounded-full bg-red-400"></div><div class="w-3 h-3 rounded-full bg-yellow-400"></div><div class="w-3 h-3 rounded-full bg-green-400"></div></div>
+                  <div class="text-xs text-gray-500 font-medium">Mail — Forward</div>
+                  <div class="w-12"></div>
+                </div>
+                <div class="p-4 space-y-2">
+                  <div class="flex items-center gap-2 border-b border-gray-200 pb-2">
+                    <span class="text-xs text-gray-400 w-8">To:</span>
+                    <div class="flex-1 flex items-center gap-2">
+                      <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">connections@circlepath.ai</span>
+                      <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-medium">← paste this</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 border-b border-gray-200 pb-2">
+                    <span class="text-xs text-gray-400 w-8">Fwd:</span>
+                    <span class="text-xs text-gray-600">Your LinkedIn data export is ready</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" stroke-width="2"/></svg>
+                    <span class="text-xs text-gray-500 font-medium">Basic_LinkedInDataExport.zip</span>
+                    <span class="text-xs text-gray-400">attached</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 mb-4">
+                <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke-width="2"/></svg>
+                <div class="text-xs text-blue-700">Make sure to forward the original email — it has the zip attachment with your connections data. Don't just copy the download link.</div>
+              </div>
+              <button @click="onboardingStep=4" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">Email forwarded →</button>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div :class="onboardingStep === 4 ? 'ring-2 ring-green-400 shadow-md' : 'opacity-60'" class="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all">
+            <div class="px-6 py-4 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" :class="onboardingStep === 4 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'">4</div>
+              <div class="flex-1">
+                <div class="font-semibold text-gray-900">Done! We parse and enrich automatically</div>
+                <div class="text-xs text-gray-400 mt-0.5">We handle parsing, deduplication, and company enrichment</div>
+              </div>
+            </div>
+            <div x-show="onboardingStep === 4" class="px-6 pb-6">
+              <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl border border-green-200 p-5">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg>
+                  </div>
+                  <div>
+                    <div class="font-bold text-green-800 text-base">Your connections are being processed!</div>
+                    <div class="text-xs text-green-600">Usually completes within 5–10 minutes</div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div class="bg-white rounded-xl p-3 text-center border border-green-100">
+                    <div class="text-2xl font-extrabold text-green-600">2,347</div>
+                    <div class="text-xs text-gray-500 mt-0.5">connections imported</div>
+                  </div>
+                  <div class="bg-white rounded-xl p-3 text-center border border-green-100">
+                    <div class="text-2xl font-extrabold text-indigo-600">847</div>
+                    <div class="text-xs text-gray-500 mt-0.5">companies enriched</div>
+                  </div>
+                  <div class="bg-white rounded-xl p-3 text-center border border-green-100">
+                    <div class="text-2xl font-extrabold text-purple-600">156</div>
+                    <div class="text-xs text-gray-500 mt-0.5">ICP matches found</div>
+                  </div>
+                </div>
+                <div class="mt-4 coverage-bar"><div class="coverage-fill bg-green-500" style="width:72%"></div></div>
+                <div class="flex justify-between text-xs text-green-600 mt-1 font-medium">
+                  <span>Processing...</span>
+                  <span>72% complete</span>
+                </div>
+              </div>
+              <button @click="setScreen('connections')" class="mt-4 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">Go to Connections →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TEAM ==================== -->
+    <div x-show="screen==='team'" x-cloak class="fade-in">
+      <div class="px-8 py-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Team Members</h1>
+            <p class="text-gray-500 mt-0.5 text-sm">5 members connected · Last sync 4 minutes ago</p>
+          </div>
+          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="2.5"/></svg>
+            Invite Teammate
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-5">
+          <template x-for="member in teamDetails" :key="member.name">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white shadow-sm" :style="`background:${member.color}`" x-text="member.initials"></div>
+                <div>
+                  <div class="font-bold text-gray-900" x-text="member.name"></div>
+                  <div class="text-xs text-gray-400" x-text="member.role"></div>
+                </div>
+                <div class="ml-auto">
+                  <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                  <div class="text-xl font-extrabold text-gray-900" x-text="member.connections.toLocaleString()"></div>
+                  <div class="text-xs text-gray-400">Connections</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                  <div class="text-xl font-extrabold text-green-600" x-text="member.icpMatches"></div>
+                  <div class="text-xs text-gray-400">ICP Matches</div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Scoring progress</span>
+                  <span x-text="member.scoringPct + '%'"></span>
+                </div>
+                <div class="coverage-bar"><div class="coverage-fill bg-indigo-500" :style="`width:${member.scoringPct}%`"></div></div>
+              </div>
+              <div class="text-xs text-gray-400">Last synced: <span class="font-medium text-gray-600" x-text="member.lastSync"></span></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CONNECTION DETAIL MODAL -->
+<div x-show="detailOpen" x-cloak @click.self="detailOpen=false" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay bg-black/30 pt-7">
+  <div x-show="detailOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+    <template x-if="selectedConn">
+      <div>
+        <!-- Modal Header -->
+        <div class="gradient-card p-6 text-white relative">
+          <button @click="detailOpen=false" class="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-width="2"/></svg>
+          </button>
+          <div class="flex items-start gap-4">
+            <div class="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center text-2xl font-extrabold" x-text="selectedConn.initials"></div>
+            <div class="flex-1">
+              <div class="text-xl font-bold" x-text="selectedConn.name"></div>
+              <div class="text-indigo-200 text-sm" x-text="selectedConn.title + ' · ' + selectedConn.company"></div>
+              <div class="flex items-center gap-3 mt-2">
+                <span x-show="selectedConn.icpMatch" class="tag bg-green-500/30 text-green-100">✓ ICP Match</span>
+                <span class="tag bg-white/20 text-white" x-text="selectedConn.strength"></span>
+                <a href="#" class="w-5 h-5 bg-white/20 rounded flex items-center justify-center hover:bg-white/30 transition-colors" title="LinkedIn">
+                  <svg class="w-3 h-3 fill-white" viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- DNC Alert Banner (when enabled) -->
+        <div x-show="selectedConn.doNotContact" class="bg-red-50 border-b border-red-200 px-6 py-2.5 flex items-center gap-2">
+          <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M4.93 4.93l14.14 14.14" stroke-width="2"/></svg>
+          <span class="text-xs font-semibold text-red-700">Do Not Contact — excluded from all automated outreach</span>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 space-y-5">
+          <!-- Connected Via -->
+          <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+            <svg class="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke-width="2"/><circle cx="9" cy="7" r="4" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke-width="2"/></svg>
+            <div>
+              <div class="text-xs text-gray-400 font-medium">Connected via</div>
+              <div class="text-sm font-semibold text-gray-900" x-text="selectedConn.owner + ' (' + selectedConn.ownerRole + ')'"></div>
+            </div>
+            <div class="ml-auto">
+              <div class="text-xs font-medium text-gray-500">Relationship strength</div>
+              <div class="flex items-center gap-1 mt-0.5">
+                <template x-for="i in 5">
+                  <div class="w-3 h-3 rounded-full" :class="i <= (selectedConn.strengthLevel||0) ? 'bg-indigo-500' : 'bg-gray-200'"></div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- THE KEY UX: Dropdowns -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-semibold text-gray-700 block mb-2">
+                How well does <span x-text="selectedConn.ownerFirstName || selectedConn.owner.split(' ')[0]"></span> know them?
+              </label>
+              <select x-model="selectedConn.knowledgeLevel" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-pointer bg-white">
+                <option value="">— Select level —</option>
+                <option value="dont_know">Don't know them</option>
+                <option value="met_once">Met once / seen around</option>
+                <option value="professional">Professional relationship</option>
+                <option value="close">Close colleague</option>
+                <option value="text">Text regularly / close friend</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-semibold text-gray-700 block mb-2">Preferred contact method?</label>
+              <select x-model="selectedConn.contactMethod" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-pointer bg-white">
+                <option value="">— Select method —</option>
+                <option value="none">No contact / do not reach</option>
+                <option value="linkedin">LinkedIn message only</option>
+                <option value="email">Email preferred</option>
+                <option value="phone">Phone call OK</option>
+                <option value="text">Text / DM</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Do Not Contact Toggle -->
+          <div :class="selectedConn.doNotContact ? 'border-red-300 bg-red-50' : 'border-red-100 bg-red-50/50'" class="flex items-center gap-3 p-4 rounded-xl border-2 transition-all">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="selectedConn.doNotContact ? 'bg-red-200' : 'bg-red-100'">
+              <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M4.93 4.93l14.14 14.14" stroke-width="2"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="text-sm font-bold text-red-800">Do Not Contact</div>
+              <div class="text-xs text-red-500 leading-tight">Protect this relationship — exclude from all automated outreach</div>
+            </div>
+            <div @click="selectedConn.doNotContact = !selectedConn.doNotContact"
+              :class="selectedConn.doNotContact ? 'bg-red-500' : 'bg-gray-200'"
+              class="relative rounded-full cursor-pointer transition-colors flex-shrink-0"
+              style="height:24px;width:44px;">
+              <div :class="selectedConn.doNotContact ? 'translate-x-5' : 'translate-x-0'"
+                class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform"></div>
+            </div>
+          </div>
+
+          <!-- Intro Request Flow -->
+          <div class="bg-indigo-50 rounded-xl border border-indigo-100 p-4">
+            <div class="text-sm font-semibold text-indigo-800 mb-3">🤝 Intro Request via <span x-text="selectedConn.owner"></span></div>
+            <div x-show="!introFlowState || introFlowState === 'idle'">
+              <p class="text-xs text-indigo-600 mb-3">Ask <span x-text="selectedConn.owner"></span> to make a warm introduction to <span x-text="selectedConn.name"></span>. They'll receive a notification to approve and send.</p>
+              <button @click="introFlowState='pending'" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                Request Intro via <span x-text="(selectedConn.owner || '').split(' ')[0]"></span>
+              </button>
+            </div>
+            <div x-show="introFlowState === 'pending'" class="intro-flow-step">
+              <div class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
+                <svg class="w-5 h-5 text-amber-500 animate-pulse flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke-width="2"/></svg>
+                <div>
+                  <div class="text-xs font-semibold text-amber-800">Pending approval from <span x-text="selectedConn.owner"></span></div>
+                  <div class="text-xs text-amber-600">Sent 2 minutes ago · waiting for response</div>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button @click="introFlowState='approved'" class="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700">(Simulate) Approve →</button>
+                <button @click="introFlowState='idle'" class="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+            <div x-show="introFlowState === 'approved'" class="intro-flow-step">
+              <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg mb-3">
+                <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"/></svg>
+                <div>
+                  <div class="text-xs font-semibold text-green-800">Intro approved by <span x-text="selectedConn.owner"></span></div>
+                  <div class="text-xs text-green-600">AI-drafted intro email is ready to review</div>
+                </div>
+              </div>
+              <button @click="introFlowState='sent'" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700">(Simulate) Send Intro →</button>
+            </div>
+            <div x-show="introFlowState === 'sent'" class="intro-flow-step">
+              <div class="flex items-center gap-3 p-3 bg-indigo-100 border border-indigo-200 rounded-lg">
+                <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke-width="2"/></svg>
+                <div>
+                  <div class="text-xs font-semibold text-indigo-800">Intro sent! ✓</div>
+                  <div class="text-xs text-indigo-600"><span x-text="selectedConn.owner"></span> forwarded the intro to <span x-text="selectedConn.name"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ICP Match Details -->
+          <div x-show="selectedConn.icpMatch" class="bg-green-50 rounded-xl p-4 border border-green-100">
+            <div class="text-sm font-semibold text-green-800 mb-2">✓ ICP Match: Enterprise CRO</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="flex items-center gap-1.5 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></span>Title: Chief Revenue Officer</div>
+              <div class="flex items-center gap-1.5 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></span>Company size: 500-5,000 employees</div>
+              <div class="flex items-center gap-1.5 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></span>Industry: B2B SaaS / Fintech</div>
+              <div class="flex items-center gap-1.5 text-green-700"><span class="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></span>Location: North America</div>
+            </div>
+          </div>
+
+          <!-- Relationship Timeline -->
+          <div>
+            <div class="text-sm font-semibold text-gray-700 mb-3">Relationship Timeline</div>
+            <div class="space-y-2 relative pl-5">
+              <div class="absolute left-1.5 top-2 bottom-2 w-px bg-gray-200"></div>
+              <template x-for="ev in (selectedConn.timeline || [])">
+                <div class="relative flex items-start gap-2">
+                  <div class="absolute -left-3.5 w-2.5 h-2.5 rounded-full border-2 border-white mt-0.5" :class="ev.dotClass"></div>
+                  <div class="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 flex-1">
+                    <div class="text-xs font-medium text-gray-800" x-text="ev.event"></div>
+                    <div class="text-xs text-gray-400" x-text="ev.date"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-2 pt-2">
+            <button @click="setScreen('campaigns'); detailOpen=false" class="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+              Send to Campaign
+            </button>
+            <button class="flex-1 py-2.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+              Mark for Manual
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+function app() {
+  return {
+    screen: 'dashboard',
+    detailOpen: false,
+    selectedConn: null,
+    selectedIcp: null,
+    selectedAccount: null,
+    connSearch: '',
+    connIcpFilter: '',
+    connStrengthFilter: '',
+    connUnscoredOnly: false,
+    icpRefreshing: false,
+    icpBannerDismissed: false,
+    onboardingStep: 1,
+    introFlowState: 'idle',
+
+    init() {
+      this.selectedIcp = this.icpProfiles[0];
+    },
+
+    setScreen(s) {
+      this.screen = s;
+      this.detailOpen = false;
+    },
+
+    openDetail(conn) {
+      this.selectedConn = { ...conn };
+      this.introFlowState = 'idle';
+      this.detailOpen = true;
+    },
+
+    get filteredConnections() {
+      let list = this.connections;
+      if (this.connSearch) {
+        const q = this.connSearch.toLowerCase();
+        list = list.filter(c =>
+          c.name.toLowerCase().includes(q) ||
+          c.company.toLowerCase().includes(q) ||
+          c.title.toLowerCase().includes(q)
+        );
+      }
+      if (this.connStrengthFilter) {
+        list = list.filter(c => c.strengthKey === this.connStrengthFilter);
+      }
+      if (this.connUnscoredOnly) {
+        list = list.filter(c => c.strengthKey === 'unscored');
+      }
+      return list;
+    },
+
+    activityFeed: [
+      { id:1, avatar:'SC', avatarClass:'bg-pink-500 text-white', text:'<strong>Sarah Chen</strong> scored 15 connections — 8 ICP matches found', time:'2 min ago', tag:'Scoring', tagClass:'tag bg-purple-100 text-purple-700' },
+      { id:2, avatar:'🎯', avatarClass:'bg-green-100 text-green-700', text:'<strong>3 new ICP matches</strong> found at Snowflake and Datadog after sync', time:'14 min ago', tag:'ICP', tagClass:'tag bg-green-100 text-green-700' },
+      { id:3, avatar:'MR', avatarClass:'bg-blue-500 text-white', text:`<strong>Mike Rodriguez's</strong> connection at Stripe responded to LinkedIn message`, time:'1h ago', tag:'Reply', tagClass:'tag bg-blue-100 text-blue-700' },
+      { id:4, avatar:'EW', avatarClass:'bg-amber-500 text-white', text:'<strong>Emily Watson</strong> uploaded 2,341 new LinkedIn connections', time:'3h ago', tag:'Import', tagClass:'tag bg-amber-100 text-amber-700' },
+      { id:5, avatar:'LP', avatarClass:'bg-teal-500 text-white', text:'<strong>Luke Park</strong> flagged 4 contacts as Do Not Contact', time:'5h ago', tag:'Review', tagClass:'tag bg-gray-100 text-gray-500' },
+      { id:6, avatar:'🚀', avatarClass:'bg-indigo-100 text-indigo-700', text:'Campaign <strong>"Series B Outreach Q3"</strong> activated — 87 messages queued', time:'Yesterday', tag:'Campaign', tagClass:'tag bg-indigo-100 text-indigo-700' },
+    ],
+
+    teamMembers: [
+      { name:'Jason Phillips', initials:'JP', color:'#4F46E5', connections:18420, pct:88 },
+      { name:'Sarah Chen', initials:'SC', color:'#EC4899', connections:12840, pct:72 },
+      { name:'Mike Rodriguez', initials:'MR', color:'#3B82F6', connections:8923, pct:59 },
+      { name:'Luke Park', initials:'LP', color:'#14B8A6', connections:4720, pct:42 },
+      { name:'Emily Watson', initials:'EW', color:'#F59E0B', connections:2380, pct:28 },
+    ],
+
+    connections: [
+      { id:1, name:'Marcus Kim', title:'Chief Revenue Officer', company:'Stripe', initials:'MK', avatarColor:'#6366F1', owner:'Jason Phillips', ownerRole:'CEO', ownerInitials:'JP', ownerColor:'#4F46E5', strength:'Text regularly', strengthKey:'strong', strengthClass:'tag bg-green-100 text-green-800', strengthLevel:5, icpMatch:true, lastActivity:'2 days ago', knowledgeLevel:'text', contactMethod:'text', doNotContact:false, timeline:[{event:'Met at SaaStr 2023', date:'Mar 2023', dotClass:'bg-indigo-400'},{event:'Coffee in SF', date:'Jun 2023', dotClass:'bg-green-400'},{event:'LinkedIn message sent', date:'Jan 2024', dotClass:'bg-blue-400'},{event:'Replied positively', date:'Jan 2024', dotClass:'bg-green-500'}] },
+      { id:2, name:'Priya Nair', title:'VP of Engineering', company:'Notion', initials:'PN', avatarColor:'#8B5CF6', owner:'Sarah Chen', ownerRole:'VP Sales', ownerInitials:'SC', ownerColor:'#EC4899', strength:'Professional', strengthKey:'moderate', strengthClass:'tag bg-blue-100 text-blue-800', strengthLevel:3, icpMatch:false, lastActivity:'1 week ago', knowledgeLevel:'professional', contactMethod:'linkedin', doNotContact:false, timeline:[{event:'Connected on LinkedIn', date:'Apr 2022', dotClass:'bg-gray-400'},{event:'Shared article about scaling teams', date:'Nov 2023', dotClass:'bg-indigo-400'}] },
+      { id:3, name:'Devon Clarke', title:'CFO', company:'Linear', initials:'DC', avatarColor:'#F59E0B', owner:'Jason Phillips', ownerRole:'CEO', ownerInitials:'JP', ownerColor:'#4F46E5', strength:'Close', strengthKey:'strong', strengthClass:'tag bg-green-100 text-green-800', strengthLevel:4, icpMatch:true, lastActivity:'3 days ago', knowledgeLevel:'close', contactMethod:'email', doNotContact:false, timeline:[{event:'Former colleague at Segment', date:'2019', dotClass:'bg-gray-400'},{event:'Reconnected at YC founder event', date:'Oct 2023', dotClass:'bg-indigo-400'},{event:'Intro call scheduled', date:'Feb 2024', dotClass:'bg-green-400'}] },
+      { id:4, name:'Alex Rivera', title:'Head of Sales', company:'Vercel', initials:'AR', avatarColor:'#10B981', owner:'Mike Rodriguez', ownerRole:'AE', ownerInitials:'MR', ownerColor:'#3B82F6', strength:'Met once', strengthKey:'weak', strengthClass:'tag bg-gray-100 text-gray-600', strengthLevel:2, icpMatch:false, lastActivity:'2 weeks ago', knowledgeLevel:'met_once', contactMethod:'linkedin', doNotContact:false, timeline:[{event:'Met at Outbound conference', date:'Sep 2023', dotClass:'bg-gray-400'}] },
+      { id:5, name:'Jordan Lee', title:'CRO', company:'Datadog', initials:'JL', avatarColor:'#EF4444', owner:'Sarah Chen', ownerRole:'VP Sales', ownerInitials:'SC', ownerColor:'#EC4899', strength:'Professional', strengthKey:'moderate', strengthClass:'tag bg-blue-100 text-blue-800', strengthLevel:3, icpMatch:true, lastActivity:'5 days ago', knowledgeLevel:'professional', contactMethod:'email', doNotContact:false, timeline:[{event:'Connected at SaaStr', date:'Feb 2023', dotClass:'bg-gray-400'},{event:'Shared mutual connections', date:'Jul 2023', dotClass:'bg-indigo-400'}] },
+      { id:6, name:'Sam Winters', title:'Director of Product', company:'Snowflake', initials:'SW', avatarColor:'#0EA5E9', owner:'Luke Park', ownerRole:'Solutions Engineer', ownerInitials:'LP', ownerColor:'#14B8A6', strength:'Unscored', strengthKey:'unscored', strengthClass:'tag bg-amber-50 text-amber-600 border border-amber-200', strengthLevel:0, icpMatch:false, lastActivity:'Never', knowledgeLevel:'', contactMethod:'', doNotContact:false, timeline:[{event:'Imported from LinkedIn', date:'Jan 2024', dotClass:'bg-gray-400'}] },
+      { id:7, name:'Taylor Brooks', title:'VP of Sales', company:'Figma', initials:'TB', avatarColor:'#7C3AED', owner:'Jason Phillips', ownerRole:'CEO', ownerInitials:'JP', ownerColor:'#4F46E5', strength:'Text regularly', strengthKey:'strong', strengthClass:'tag bg-green-100 text-green-800', strengthLevel:5, icpMatch:true, lastActivity:'Yesterday', knowledgeLevel:'text', contactMethod:'text', doNotContact:false, timeline:[{event:'Stanford MBA classmates', date:'2015', dotClass:'bg-indigo-400'},{event:'Regular coffee chats', date:'Ongoing', dotClass:'bg-green-500'}] },
+      { id:8, name:'Morgan Patel', title:'CTO', company:'Airtable', initials:'MP', avatarColor:'#F97316', owner:'Emily Watson', ownerRole:'SDR', ownerInitials:'EW', ownerColor:'#F59E0B', strength:'Unscored', strengthKey:'unscored', strengthClass:'tag bg-amber-50 text-amber-600 border border-amber-200', strengthLevel:0, icpMatch:false, lastActivity:'Never', knowledgeLevel:'', contactMethod:'', doNotContact:false, timeline:[{event:'Imported from LinkedIn', date:'Jan 2024', dotClass:'bg-gray-400'}] },
+      { id:9, name:'Casey Murphy', title:'Head of Revenue', company:'Retool', initials:'CM', avatarColor:'#6366F1', owner:'Sarah Chen', ownerRole:'VP Sales', ownerInitials:'SC', ownerColor:'#EC4899', strength:'Professional', strengthKey:'moderate', strengthClass:'tag bg-blue-100 text-blue-800', strengthLevel:3, icpMatch:true, lastActivity:'4 days ago', knowledgeLevel:'professional', contactMethod:'linkedin', doNotContact:false, timeline:[{event:'Met through Sarah\'s network', date:'Aug 2023', dotClass:'bg-gray-400'},{event:'Intro meeting held', date:'Nov 2023', dotClass:'bg-indigo-400'}] },
+      { id:10, name:'Riley Santos', title:'VP Engineering', company:'Amplitude', initials:'RS', avatarColor:'#14B8A6', owner:'Luke Park', ownerRole:'Solutions Engineer', ownerInitials:'LP', ownerColor:'#14B8A6', strength:'Met once', strengthKey:'weak', strengthClass:'tag bg-gray-100 text-gray-600', strengthLevel:1, icpMatch:false, lastActivity:'1 month ago', knowledgeLevel:'met_once', contactMethod:'linkedin', doNotContact:false, timeline:[{event:'Panel at SaaStr', date:'Mar 2023', dotClass:'bg-gray-400'}] },
+      { id:11, name:'Jamie Foster', title:'Chief Revenue Officer', company:'Stripe', initials:'JF', avatarColor:'#8B5CF6', owner:'Jason Phillips', ownerRole:'CEO', ownerInitials:'JP', ownerColor:'#4F46E5', strength:'Close', strengthKey:'strong', strengthClass:'tag bg-green-100 text-green-800', strengthLevel:4, icpMatch:true, lastActivity:'Today', knowledgeLevel:'close', contactMethod:'phone', doNotContact:false, timeline:[{event:'Board intro through common investor', date:'2022', dotClass:'bg-indigo-400'},{event:'Quarterly check-ins ongoing', date:'Ongoing', dotClass:'bg-green-500'}] },
+      { id:12, name:'Avery Chen', title:'Head of Finance', company:'Notion', initials:'AC', avatarColor:'#EC4899', owner:'Mike Rodriguez', ownerRole:'AE', ownerInitials:'MR', ownerColor:'#3B82F6', strength:'Unscored', strengthKey:'unscored', strengthClass:'tag bg-amber-50 text-amber-600 border border-amber-200', strengthLevel:0, icpMatch:false, lastActivity:'Never', knowledgeLevel:'', contactMethod:'', doNotContact:false, timeline:[{event:'Imported from LinkedIn', date:'Feb 2024', dotClass:'bg-gray-400'}] },
+      { id:13, name:'Niko Vasquez', title:'Director of Engineering', company:'Vercel', initials:'NV', avatarColor:'#0EA5E9', owner:'Luke Park', ownerRole:'Solutions Engineer', ownerInitials:'LP', ownerColor:'#14B8A6', strength:'Professional', strengthKey:'moderate', strengthClass:'tag bg-blue-100 text-blue-800', strengthLevel:3, icpMatch:false, lastActivity:'2 weeks ago', knowledgeLevel:'professional', contactMethod:'linkedin', doNotContact:false, timeline:[{event:'Former coworker', date:'2020', dotClass:'bg-gray-400'},{event:'Reconnected at conference', date:'Oct 2023', dotClass:'bg-indigo-400'}] },
+      { id:14, name:'Sage Mitchell', title:'CRO', company:'Figma', initials:'SM', avatarColor:'#F59E0B', owner:'Sarah Chen', ownerRole:'VP Sales', ownerInitials:'SC', ownerColor:'#EC4899', strength:'Text regularly', strengthKey:'strong', strengthClass:'tag bg-green-100 text-green-800', strengthLevel:5, icpMatch:true, lastActivity:'Today', knowledgeLevel:'text', contactMethod:'text', doNotContact:false, timeline:[{event:'Met at YC event', date:'Jan 2023', dotClass:'bg-indigo-400'},{event:'Regular Slack messages', date:'Ongoing', dotClass:'bg-green-500'}] },
+      { id:15, name:'Drew Okafor', title:'VP of Marketing', company:'Datadog', initials:'DO', avatarColor:'#10B981', owner:'Emily Watson', ownerRole:'SDR', ownerInitials:'EW', ownerColor:'#F59E0B', strength:'Unscored', strengthKey:'unscored', strengthClass:'tag bg-amber-50 text-amber-600 border border-amber-200', strengthLevel:0, icpMatch:false, lastActivity:'Never', knowledgeLevel:'', contactMethod:'', doNotContact:false, timeline:[{event:'Imported from LinkedIn', date:'Feb 2024', dotClass:'bg-gray-400'}] },
+    ],
+
+    strongConnections: [
+      { name:'Marcus Kim', title:'CRO', company:'Stripe', initials:'MK', color:'#6366F1', strength:'Text regularly', owner:'Jason' },
+      { name:'Devon Clarke', title:'CFO', company:'Linear', initials:'DC', color:'#F59E0B', strength:'Close', owner:'Jason' },
+      { name:'Taylor Brooks', title:'VP Sales', company:'Figma', initials:'TB', color:'#7C3AED', strength:'Text regularly', owner:'Jason' },
+      { name:'Sage Mitchell', title:'CRO', company:'Figma', initials:'SM', color:'#F59E0B', strength:'Text regularly', owner:'Sarah' },
+      { name:'Jamie Foster', title:'CRO', company:'Stripe', initials:'JF', color:'#8B5CF6', strength:'Close', owner:'Jason' },
+    ],
+
+    weakConnections: [
+      { name:'Alex Rivera', title:'Head of Sales', company:'Vercel', initials:'AR', color:'#10B981', strength:'Met once', strengthClass:'tag bg-gray-100 text-gray-600', owner:'Mike' },
+      { name:'Riley Santos', title:'VP Eng', company:'Amplitude', initials:'RS', color:'#14B8A6', strength:'Met once', strengthClass:'tag bg-gray-100 text-gray-600', owner:'Luke' },
+      { name:'Sam Winters', title:'Dir. Product', company:'Snowflake', initials:'SW', color:'#0EA5E9', strength:'Unscored', strengthClass:'tag bg-amber-50 text-amber-600', owner:'Luke' },
+      { name:'Morgan Patel', title:'CTO', company:'Airtable', initials:'MP', color:'#F97316', strength:'Unscored', strengthClass:'tag bg-amber-50 text-amber-600', owner:'Emily' },
+      { name:'Drew Okafor', title:'VP Marketing', company:'Datadog', initials:'DO', color:'#10B981', strength:'Unscored', strengthClass:'tag bg-amber-50 text-amber-600', owner:'Emily' },
+    ],
+
+    icpProfiles: [
+      { name:'Enterprise CRO', description:'Chief Revenue Officers at 100–5,000 person B2B SaaS cos.', matchCount:247, coverage:68, iconBg:'bg-indigo-100', iconColor:'text-indigo-600', countColor:'text-indigo-700', barColor:'#4F46E5', tags:['B2B SaaS','100–5k'] },
+      { name:'SMB CFO', description:'Finance leaders at seed/Series A startups, $1M–$20M ARR.', matchCount:89, coverage:45, iconBg:'bg-green-100', iconColor:'text-green-600', countColor:'text-green-700', barColor:'#10B981', tags:['Seed–A','CFO'] },
+      { name:'Series B VP Eng', description:'Engineering leaders at well-funded Series B/C startups.', matchCount:156, coverage:72, iconBg:'bg-purple-100', iconColor:'text-purple-600', countColor:'text-purple-700', barColor:'#7C3AED', tags:['Series B–C','Eng'] },
+    ],
+
+    icpPreviews: [
+      { name:'Marcus Kim', title:'CRO', company:'Stripe', initials:'MK', color:'#6366F1' },
+      { name:'Jordan Lee', title:'CRO', company:'Datadog', initials:'JL', color:'#EF4444' },
+      { name:'Casey Murphy', title:'Head of Revenue', company:'Retool', initials:'CM', color:'#6366F1' },
+      { name:'Jamie Foster', title:'CRO', company:'Stripe', initials:'JF', color:'#8B5CF6' },
+    ],
+
+    industries: [
+      {name:'B2B SaaS', selected:true}, {name:'Fintech', selected:true}, {name:'DevTools', selected:false},
+      {name:'MarTech', selected:false}, {name:'Enterprise Software', selected:true}, {name:'Cloud Infrastructure', selected:false},
+      {name:'Security', selected:false}, {name:'AI/ML', selected:true},
+    ],
+
+    titles: [
+      {name:'CRO', selected:true}, {name:'Chief Revenue Officer', selected:true}, {name:'VP Sales', selected:false},
+      {name:'Head of Revenue', selected:true}, {name:'SVP Sales', selected:false}, {name:'CSO', selected:false},
+    ],
+
+    targetAccounts: [
+      { name:'Stripe', industry:'Fintech', size:'8,000 employees', connections:4, strong:2, coverage:82, coverageColor:'#10B981', roles:[{name:'CRO',known:true},{name:'CFO',known:false},{name:'CTO',known:true},{name:'CMO',known:false}], overlapMembers:[{name:'Jason',initials:'JP',color:'#4F46E5',count:3},{name:'Sarah',initials:'SC',color:'#EC4899',count:2},{name:'Luke',initials:'LP',color:'#14B8A6',count:1}], sharedConnections:1, teamConnections:[
+        {name:'Marcus Kim',title:'CRO',initials:'MK',color:'#6366F1',owner:'Jason Phillips',ownerInitials:'JP',ownerColor:'#4F46E5',strength:'Text regularly',strengthClass:'tag bg-green-100 text-green-800',role:'CRO'},
+        {name:'Jamie Foster',title:'CRO (Former)',initials:'JF',color:'#8B5CF6',owner:'Jason Phillips',ownerInitials:'JP',ownerColor:'#4F46E5',strength:'Close',strengthClass:'tag bg-green-100 text-green-800',role:'Revenue'},
+        {name:'Alex Kim',title:'Head of Eng',initials:'AK',color:'#14B8A6',owner:'Luke Park',ownerInitials:'LP',ownerColor:'#14B8A6',strength:'Professional',strengthClass:'tag bg-blue-100 text-blue-800',role:'Tech'},
+      ], buyingCommittee:[{role:'CRO/Revenue',name:'Marcus Kim',covered:true},{role:'CFO/Finance',name:'',covered:false},{role:'CTO/Tech',name:'Alex Kim',covered:true},{role:'CEO',name:'',covered:false}] },
+      { name:'Notion', industry:'Productivity SaaS', size:'800 employees', connections:2, strong:1, coverage:55, coverageColor:'#6366F1', roles:[{name:'VP Eng',known:true},{name:'CFO',known:false},{name:'Head of Sales',known:false}], overlapMembers:[{name:'Sarah',initials:'SC',color:'#EC4899',count:1},{name:'Mike',initials:'MR',color:'#3B82F6',count:1}], sharedConnections:0, teamConnections:[
+        {name:'Priya Nair',title:'VP Engineering',initials:'PN',color:'#8B5CF6',owner:'Sarah Chen',ownerInitials:'SC',ownerColor:'#EC4899',strength:'Professional',strengthClass:'tag bg-blue-100 text-blue-800',role:'Tech'},
+        {name:'Avery Chen',title:'Head of Finance',initials:'AC',color:'#EC4899',owner:'Mike Rodriguez',ownerInitials:'MR',ownerColor:'#3B82F6',strength:'Unscored',strengthClass:'tag bg-amber-50 text-amber-600',role:'Finance'},
+      ], buyingCommittee:[{role:'Head of Sales',name:'',covered:false},{role:'CFO',name:'',covered:false},{role:'VP Engineering',name:'Priya Nair',covered:true}] },
+      { name:'Linear', industry:'DevTools', size:'120 employees', connections:1, strong:1, coverage:35, coverageColor:'#F59E0B', roles:[{name:'CFO',known:true},{name:'CTO',known:false}], overlapMembers:[{name:'Jason',initials:'JP',color:'#4F46E5',count:1}], sharedConnections:0, teamConnections:[
+        {name:'Devon Clarke',title:'CFO',initials:'DC',color:'#F59E0B',owner:'Jason Phillips',ownerInitials:'JP',ownerColor:'#4F46E5',strength:'Close',strengthClass:'tag bg-green-100 text-green-800',role:'Finance'},
+      ], buyingCommittee:[{role:'CFO',name:'Devon Clarke',covered:true},{role:'CTO',name:'',covered:false},{role:'CEO',name:'',covered:false}] },
+      { name:'Vercel', industry:'Cloud Infrastructure', size:'400 employees', connections:2, strong:0, coverage:28, coverageColor:'#EF4444', roles:[{name:'Head of Sales',known:true},{name:'VP Eng',known:true},{name:'CFO',known:false}], overlapMembers:[{name:'Mike',initials:'MR',color:'#3B82F6',count:1},{name:'Luke',initials:'LP',color:'#14B8A6',count:1}], sharedConnections:0, teamConnections:[
+        {name:'Alex Rivera',title:'Head of Sales',initials:'AR',color:'#10B981',owner:'Mike Rodriguez',ownerInitials:'MR',ownerColor:'#3B82F6',strength:'Met once',strengthClass:'tag bg-gray-100 text-gray-600',role:'Revenue'},
+        {name:'Niko Vasquez',title:'Dir. Engineering',initials:'NV',color:'#0EA5E9',owner:'Luke Park',ownerInitials:'LP',ownerColor:'#14B8A6',strength:'Professional',strengthClass:'tag bg-blue-100 text-blue-800',role:'Tech'},
+      ], buyingCommittee:[{role:'Head of Sales',name:'Alex Rivera',covered:true},{role:'VP Engineering',name:'Niko Vasquez',covered:true},{role:'CFO',name:'',covered:false}] },
+      { name:'Datadog', industry:'Cloud Monitoring', size:'5,000 employees', connections:2, strong:1, coverage:61, coverageColor:'#6366F1', roles:[{name:'CRO',known:true},{name:'VP Marketing',known:true},{name:'CFO',known:false}], overlapMembers:[{name:'Sarah',initials:'SC',color:'#EC4899',count:1},{name:'Emily',initials:'EW',color:'#F59E0B',count:1}], sharedConnections:0, teamConnections:[
+        {name:'Jordan Lee',title:'CRO',initials:'JL',color:'#EF4444',owner:'Sarah Chen',ownerInitials:'SC',ownerColor:'#EC4899',strength:'Professional',strengthClass:'tag bg-blue-100 text-blue-800',role:'Revenue'},
+        {name:'Drew Okafor',title:'VP Marketing',initials:'DO',color:'#10B981',owner:'Emily Watson',ownerInitials:'EW',ownerColor:'#F59E0B',strength:'Unscored',strengthClass:'tag bg-amber-50 text-amber-600',role:'Marketing'},
+      ], buyingCommittee:[{role:'CRO',name:'Jordan Lee',covered:true},{role:'VP Marketing',name:'Drew Okafor',covered:true},{role:'CFO',name:'',covered:false}] },
+      { name:'Figma', industry:'Design SaaS', size:'1,200 employees', connections:2, strong:2, coverage:90, coverageColor:'#10B981', roles:[{name:'VP Sales',known:true},{name:'CRO',known:true},{name:'CTO',known:false}], overlapMembers:[{name:'Jason',initials:'JP',color:'#4F46E5',count:1},{name:'Sarah',initials:'SC',color:'#EC4899',count:1}], sharedConnections:1, teamConnections:[
+        {name:'Taylor Brooks',title:'VP of Sales',initials:'TB',color:'#7C3AED',owner:'Jason Phillips',ownerInitials:'JP',ownerColor:'#4F46E5',strength:'Text regularly',strengthClass:'tag bg-green-100 text-green-800',role:'Revenue'},
+        {name:'Sage Mitchell',title:'CRO',initials:'SM',color:'#F59E0B',owner:'Sarah Chen',ownerInitials:'SC',ownerColor:'#EC4899',strength:'Text regularly',strengthClass:'tag bg-green-100 text-green-800',role:'Revenue'},
+      ], buyingCommittee:[{role:'VP Sales',name:'Taylor Brooks',covered:true},{role:'CRO',name:'Sage Mitchell',covered:true},{role:'CTO',name:'',covered:false}] },
+    ],
+
+    campaignWarmPaths: [
+      {
+        name: 'Jason Phillips', role: 'CEO', initials: 'JP', color: '#4F46E5', expanded: true,
+        connections: [
+          { name:'Rachel Torres',    title:'CFO',                company:'Brex',         initials:'RT', avatarColor:'#6366F1', strength:'Strong',   icpScore:97 },
+          { name:'Kevin Lin',        title:'VP Finance',         company:'Ripple',        initials:'KL', avatarColor:'#8B5CF6', strength:'Strong',   icpScore:94 },
+          { name:'Danielle Park',    title:'CFO',                company:'Plaid',         initials:'DP', avatarColor:'#F59E0B', strength:'Moderate', icpScore:89 },
+        ]
+      },
+      {
+        name: 'Sarah Chen', role: 'VP Sales', initials: 'SC', color: '#EC4899', expanded: false,
+        connections: [
+          { name:'Marcus Webb',      title:'CFO',                company:'Stripe',        initials:'MW', avatarColor:'#10B981', strength:'Strong',   icpScore:96 },
+          { name:'Aisha Johnson',    title:'VP Finance',         company:'Marqeta',       initials:'AJ', avatarColor:'#EF4444', strength:'Strong',   icpScore:92 },
+          { name:'Tyler Nguyen',     title:'Head of Finance',    company:'Chime',         initials:'TN', avatarColor:'#0EA5E9', strength:'Moderate', icpScore:85 },
+          { name:'Brianna Cole',     title:'CFO',                company:'Affirm',        initials:'BC', avatarColor:'#7C3AED', strength:'Moderate', icpScore:88 },
+          { name:'James Okoye',      title:'VP Finance & Ops',   company:'Checkout.com',  initials:'JO', avatarColor:'#F97316', strength:'Weak',     icpScore:72 },
+        ]
+      },
+      {
+        name: 'Mike Rodriguez', role: 'AE', initials: 'MR', color: '#3B82F6', expanded: false,
+        connections: [
+          { name:'Sofia Reyes',      title:'CFO',                company:'Adyen',         initials:'SR', avatarColor:'#14B8A6', strength:'Moderate', icpScore:83 },
+          { name:'Patrick Huang',    title:'VP Finance',         company:'Ramp',          initials:'PH', avatarColor:'#6366F1', strength:'Weak',     icpScore:78 },
+        ]
+      },
+    ],
+
+    teamDetails: [
+      { name:'Jason Phillips', initials:'JP', color:'#4F46E5', role:'CEO & Co-founder', connections:18420, icpMatches:892, scoringPct:76, lastSync:'2 min ago' },
+      { name:'Sarah Chen', initials:'SC', color:'#EC4899', role:'VP of Sales', connections:12840, icpMatches:634, scoringPct:88, lastSync:'4 min ago' },
+      { name:'Mike Rodriguez', initials:'MR', color:'#3B82F6', role:'Account Executive', connections:8923, icpMatches:421, scoringPct:52, lastSync:'4 min ago' },
+      { name:'Luke Park', initials:'LP', color:'#14B8A6', role:'Solutions Engineer', connections:4720, icpMatches:203, scoringPct:41, lastSync:'Yesterday' },
+      { name:'Emily Watson', initials:'EW', color:'#F59E0B', role:'SDR', connections:2380, icpMatches:98, scoringPct:29, lastSync:'3h ago' },
+    ],
+  }
+}
+</script>
+</body>
+</html>

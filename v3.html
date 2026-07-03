@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en" x-data="app()" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circlepath v3 — Relationship Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    [x-cloak] { display: none !important; }
+
+    .fade-in { animation: fadeIn 0.18s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    .nav-item { transition: all 0.15s ease; cursor: pointer; }
+    .nav-item.active { background: #EEF2FF; color: #4F46E5; }
+    .nav-item.active .nav-icon { color: #4F46E5; }
+    .nav-item:not(.active):hover { background: #F8FAFC; }
+
+    .strength-strong  { background: #D1FAE5; color: #065F46; }
+    .strength-medium  { background: #FEF3C7; color: #92400E; }
+    .strength-weak    { background: #FEE2E2; color: #991B1B; }
+    .strength-unscored{ background: #F1F5F9; color: #64748B; }
+
+    .coverage-bar  { height: 7px; border-radius: 4px; background: #E2E8F0; overflow: hidden; }
+    .coverage-fill { height: 100%; border-radius: 4px; transition: width 0.7s cubic-bezier(0.34,1.56,0.64,1); }
+
+    .ring-svg { transform: rotate(-90deg); transform-origin: center; }
+
+    /* ===== PRODUCT TOUR ===== */
+    .tour-backdrop-panel {
+      position: fixed;
+      background: rgba(0,0,0,0.62);
+      z-index: 9001;
+      pointer-events: all;
+    }
+    .tour-highlighted {
+      outline: 3px solid #4F46E5 !important;
+      outline-offset: 6px !important;
+      border-radius: 10px;
+      position: relative;
+      z-index: 9002 !important;
+    }
+    .tour-tooltip {
+      position: fixed;
+      z-index: 9100;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.1);
+      padding: 22px 24px 18px;
+      width: 340px;
+    }
+    .tour-tooltip.centered {
+      left: 50% !important;
+      top: 50% !important;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      max-width: 90vw;
+    }
+    .tour-arrow {
+      position: absolute;
+      width: 14px; height: 14px;
+      background: #fff;
+      transform: rotate(45deg);
+    }
+    .tour-arrow.arrow-top    { top: -7px; left: 24px; box-shadow: -2px -2px 5px rgba(0,0,0,0.06); }
+    .tour-arrow.arrow-bottom { bottom: -7px; left: 24px; box-shadow: 2px 2px 5px rgba(0,0,0,0.06); }
+    .tour-arrow.arrow-right  { right: -7px; top: 20px; box-shadow: 2px -2px 5px rgba(0,0,0,0.06); }
+    .tour-arrow.arrow-left   { left: -7px; top: 20px; box-shadow: -2px 2px 5px rgba(0,0,0,0.06); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(3px); z-index: 800; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.18); max-height: 90vh; overflow-y: auto; }
+
+    /* Progress bar */
+    .progress-bar { height: 5px; background: #E2E8F0; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800" x-cloak>
+
+<!-- TOAST -->
+<div x-show="toast.show" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed bottom-5 right-5 z-[9999] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white text-sm rounded-xl shadow-2xl max-w-sm" x-cloak>
+  <div class="w-5 h-5 rounded-full bg-emerald-400 flex items-center justify-center flex-shrink-0">
+    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <span x-text="toast.message" class="flex-1"></span>
+  <button @click="toast.show=false" class="text-slate-400 hover:text-white">&times;</button>
+</div>
+
+<!-- ===================== PRODUCT TOUR BACKDROP ===================== -->
+<template x-if="tourActive">
+  <div style="pointer-events:none; position:fixed; inset:0; z-index:9001;">
+    <!-- 4-panel dark surround -->
+    <template x-if="tourStep > 0 && tourRect">
+      <div>
+        <!-- top -->
+        <div class="tour-backdrop-panel" :style="`top:0;left:0;right:0;height:${tourRect.top - 8}px`"></div>
+        <!-- bottom -->
+        <div class="tour-backdrop-panel" :style="`top:${tourRect.bottom + 8}px;left:0;right:0;bottom:0`"></div>
+        <!-- left -->
+        <div class="tour-backdrop-panel" :style="`top:${tourRect.top - 8}px;left:0;width:${tourRect.left - 8}px;height:${tourRect.height + 16}px`"></div>
+        <!-- right -->
+        <div class="tour-backdrop-panel" :style="`top:${tourRect.top - 8}px;left:${tourRect.right + 8}px;right:0;height:${tourRect.height + 16}px`"></div>
+      </div>
+    </template>
+    <template x-if="tourStep === 0 || !tourRect">
+      <div class="tour-backdrop-panel" style="inset:0;top:0;left:0;right:0;bottom:0;width:100%;height:100%;"></div>
+    </template>
+  </div>
+</template>
+
+<!-- Tour Tooltip -->
+<template x-if="tourActive">
+  <div class="tour-tooltip" :class="tourTooltipClass()" :style="tourTooltipStyle()">
+    <template x-if="tourCurrentStep().arrow !== 'none'">
+      <div class="tour-arrow" :class="'arrow-' + tourCurrentStep().arrow"></div>
+    </template>
+    <!-- progress dots -->
+    <div class="flex items-center gap-1.5 mb-3">
+      <template x-for="i in tourSteps.length" :key="i">
+        <div class="rounded-full transition-all" :class="i-1 === tourStep ? 'w-4 h-2 bg-indigo-600' : 'w-2 h-2 bg-slate-200'"></div>
+      </template>
+      <span class="ml-auto text-xs text-slate-400" x-text="`${tourStep+1} / ${tourSteps.length}`"></span>
+    </div>
+    <h3 class="font-semibold text-slate-900 text-sm mb-1.5" x-text="tourCurrentStep().title"></h3>
+    <p class="text-slate-600 text-xs leading-relaxed mb-4" x-text="tourCurrentStep().body"></p>
+    <div class="flex items-center gap-2">
+      <button @click="tourEnd()" class="text-xs text-slate-400 hover:text-slate-600 mr-auto">Skip tour</button>
+      <template x-if="tourStep > 0">
+        <button @click="tourPrev()" class="px-3 py-1.5 text-xs rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700">Back</button>
+      </template>
+      <button @click="tourNext()" class="px-4 py-1.5 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium" x-text="tourStep < tourSteps.length-1 ? 'Next' : 'Done'"></button>
+    </div>
+  </div>
+</template>
+
+<!-- ===================== SCORING MODAL ===================== -->
+<template x-if="scoreModal">
+  <div class="modal-overlay" @click.self="scoreModal=false">
+    <div class="modal-box w-full max-w-sm p-6 fade-in">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h3 class="font-semibold text-slate-900" x-text="scoreTarget.name"></h3>
+          <p class="text-xs text-slate-500 mt-0.5" x-text="`${scoreTarget.title} · ${scoreTarget.company}`"></p>
+        </div>
+        <button @click="scoreModal=false" class="text-slate-400 hover:text-slate-600 ml-3 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">How well do you know them?</label>
+          <select x-model="scoreTarget.know" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">Select...</option>
+            <option>Don't know / Never met</option>
+            <option>Met once / Briefly</option>
+            <option>Professional relationship</option>
+            <option>Close — would take a call</option>
+            <option>Text regularly / Very close</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Best contact method?</label>
+          <select x-model="scoreTarget.method" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">Select...</option>
+            <option>No contact info</option>
+            <option>LinkedIn only</option>
+            <option>Email</option>
+            <option>Phone / Video call</option>
+            <option>Text / WhatsApp</option>
+          </select>
+        </div>
+        <div class="flex items-start gap-3 p-3 rounded-lg" :class="scoreTarget.dnc ? 'bg-red-50' : 'bg-slate-50'">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" x-model="scoreTarget.dnc" class="rounded border-slate-300 text-red-500 focus:ring-red-400" />
+            <div>
+              <span class="text-xs font-medium text-slate-800">Do not contact</span>
+              <p class="text-xs text-slate-500 mt-0.5">Person will be excluded from all export lists.</p>
+            </div>
+          </label>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button @click="saveScore()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-lg">Save Score</button>
+          <button @click="scoreModal=false" class="px-4 py-2.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ===================== ICP MODAL ===================== -->
+<template x-if="icpModal">
+  <div class="modal-overlay" @click.self="icpModal=false">
+    <div class="modal-box w-full max-w-2xl p-6 fade-in mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-semibold text-slate-900 text-base">Create ICP Profile</h3>
+        <button @click="icpModal=false" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Profile Name</label>
+          <input type="text" x-model="newIcp.name" placeholder="e.g. Enterprise CTOs — Series B+" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Job Titles</label>
+          <div class="flex flex-wrap gap-1.5 mb-2 min-h-[32px] p-2 border border-slate-200 rounded-lg bg-slate-50">
+            <template x-for="t in newIcp.titles" :key="t">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                <span x-text="t"></span>
+                <button @click="newIcp.titles = newIcp.titles.filter(x => x !== t)" class="hover:text-indigo-900">×</button>
+              </span>
+            </template>
+            <template x-if="newIcp.titles.length === 0">
+              <span class="text-xs text-slate-400 self-center">Add titles below...</span>
+            </template>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <template x-for="t in titleSuggestions" :key="t">
+              <button @click="toggleIcpTitle(t)" :class="newIcp.titles.includes(t) ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50'" class="px-2.5 py-1 rounded-full text-xs font-medium transition-colors" x-text="t"></button>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Seniority Level</label>
+          <div class="space-y-1.5">
+            <template x-for="s in ['C-Suite', 'VP', 'Director', 'Manager', 'Individual Contributor']" :key="s">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" :value="s" x-model="newIcp.seniority" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-xs text-slate-700" x-text="s"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Industry</label>
+          <div class="space-y-1.5">
+            <template x-for="ind in ['Technology', 'Financial Services', 'Healthcare', 'Manufacturing', 'Retail', 'Media']" :key="ind">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" :value="ind" x-model="newIcp.industries" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-xs text-slate-700" x-text="ind"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Company Size</label>
+          <div class="space-y-1.5">
+            <template x-for="sz in ['1–50', '51–200', '201–500', '501–2,000', '2,000–10,000', '10,000+']" :key="sz">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" :value="sz" x-model="newIcp.sizes" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-xs text-slate-700" x-text="sz"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Locations</label>
+          <div class="space-y-1.5">
+            <template x-for="loc in ['US West', 'US East', 'US Central', 'Canada', 'UK', 'Europe', 'APAC']" :key="loc">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" :value="loc" x-model="newIcp.locations" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                <span class="text-xs text-slate-700" x-text="loc"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-slate-700 mb-1.5">Keywords (press Enter to add)</label>
+          <div class="flex flex-wrap gap-1.5 mb-1.5">
+            <template x-for="k in newIcp.keywords" :key="k">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-xs">
+                <span x-text="k"></span>
+                <button @click="newIcp.keywords = newIcp.keywords.filter(x => x !== k)" class="hover:text-slate-900">×</button>
+              </span>
+            </template>
+          </div>
+          <input type="text" placeholder="Type keyword + Enter..." @keydown.enter.prevent="addKeyword($event)" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button @click="saveIcp()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-lg">Save Profile</button>
+        <button @click="icpModal=false" class="px-5 py-2.5 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ===================== LAYOUT ===================== -->
+<div class="flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="w-56 flex-shrink-0 bg-white border-r border-slate-100 flex flex-col" id="sidebar">
+    <!-- Logo -->
+    <div class="px-5 py-4 border-b border-slate-100">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <div class="font-bold text-slate-900 text-sm leading-none">Circlepath</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">v3 · Acme Corp</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-3 space-y-0.5">
+      <template x-for="item in navItems" :key="item.id">
+        <button @click="setView(item.id)" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-600" :class="{'active': view === item.id}" :id="'nav-' + item.id">
+          <span class="nav-icon text-slate-400" x-html="item.icon"></span>
+          <span x-text="item.label"></span>
+          <template x-if="item.badge">
+            <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full" x-text="item.badge"></span>
+          </template>
+        </button>
+      </template>
+    </nav>
+
+    <!-- User -->
+    <div class="px-4 py-3 border-t border-slate-100">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+          <span class="text-xs font-semibold text-indigo-700">JL</span>
+        </div>
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-slate-800 truncate">Jason Lara</div>
+          <div class="text-[10px] text-slate-400">Admin</div>
+        </div>
+        <button class="ml-auto text-slate-400 hover:text-indigo-600 transition-colors" @click="startTour()">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+    <!-- ======= DASHBOARD ======= -->
+    <div x-show="view === 'dashboard'" class="flex-1 overflow-y-auto" id="view-dashboard">
+      <!-- Header -->
+      <div class="px-7 py-5 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">Dashboard</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Your team's relationship network at a glance</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="flex items-center gap-1.5 text-xs text-slate-500">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+            Live data · Updated 2h ago
+          </span>
+        </div>
+      </div>
+
+      <div class="p-7">
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6" id="dash-metrics">
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">+1,204 this week</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-900">47,218</div>
+            <div class="text-xs text-slate-500 mt-0.5">Total First Connections</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              </div>
+              <span class="text-[10px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-full">5 active</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-900">5</div>
+            <div class="text-xs text-slate-500 mt-0.5">Team Members</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">3 profiles active</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-900">2,847</div>
+            <div class="text-xs text-slate-500 mt-0.5">ICP Matches</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <span class="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">needs scoring</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-900">38,412</div>
+            <div class="text-xs text-slate-500 mt-0.5">Unscored Connections</div>
+          </div>
+        </div>
+
+        <!-- Middle row: coverage ring + top ICP matches + activity feed -->
+        <div class="grid grid-cols-12 gap-4 mb-5">
+
+          <!-- Network Coverage Donut -->
+          <div class="col-span-3 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+            <div class="text-sm font-semibold text-slate-800 mb-1">Network Coverage</div>
+            <div class="text-xs text-slate-500 mb-4">Target accounts with ≥1 connection</div>
+            <div class="flex items-center justify-center mb-3" id="dash-coverage">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#E2E8F0" stroke-width="12"/>
+                <circle class="ring-svg" cx="60" cy="60" r="48" fill="none" stroke="#4F46E5" stroke-width="12"
+                  stroke-dasharray="301.6" stroke-dashoffset="72.4" stroke-linecap="round"/>
+                <text x="60" y="55" text-anchor="middle" class="font-bold" font-size="18" fill="#1e293b" font-family="Inter,sans-serif" font-weight="700">75%</text>
+                <text x="60" y="70" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter,sans-serif">coverage</text>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Covered accounts</span>
+                <span class="font-semibold text-slate-900">18 / 24</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Total connections</span>
+                <span class="font-semibold text-slate-900">64 contacts</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">No coverage</span>
+                <span class="font-semibold text-amber-600">6 accounts</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top ICP Matches -->
+          <div class="col-span-5 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <div class="text-sm font-semibold text-slate-800">Top ICP Matches</div>
+                <div class="text-xs text-slate-500">AWS Partners — CTO/VP Eng</div>
+              </div>
+              <button @click="setView('connections')" class="text-xs text-indigo-600 hover:underline font-medium">View all →</button>
+            </div>
+            <div class="space-y-2.5" id="dash-top-matches">
+              <template x-for="m in topMatches" :key="m.name">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold" :style="`background: ${m.color}22; color: ${m.color}`" x-text="m.initials"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-medium text-slate-900 truncate" x-text="m.name"></div>
+                    <div class="text-[11px] text-slate-500 truncate" x-text="`${m.title} · ${m.company}`"></div>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full strength-strong" x-text="m.via"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="col-span-4 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col" id="dash-activity">
+            <div class="px-5 py-4 border-b border-slate-100">
+              <div class="text-sm font-semibold text-slate-800">Activity Feed</div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3" style="max-height: 280px;">
+              <template x-for="a in activityFeed" :key="a.id">
+                <div class="flex gap-2.5">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-[11px] font-semibold" :style="`background: ${a.color}22; color: ${a.color}`" x-text="a.initials"></div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-slate-700 leading-snug" x-text="a.text"></p>
+                    <span class="text-[10px] text-slate-400 mt-0.5 block" x-text="a.time"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom row: Scoring Leaderboard + Recent Export History -->
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <!-- Scoring Leaderboard -->
+          <div class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-sm font-semibold text-slate-800">Scoring Leaderboard</div>
+              <span class="text-[10px] text-slate-400">This month</span>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center">1</span>
+                <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center text-[10px] font-bold text-violet-700">JP</div>
+                <span class="text-xs font-medium text-slate-800 flex-1">Jessica Park</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 rounded-full bg-violet-500" style="width: 72px"></div>
+                  <span class="text-xs font-semibold text-slate-700">432</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">2</span>
+                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">JL</div>
+                <span class="text-xs font-medium text-slate-800 flex-1">Jason Lara</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 rounded-full bg-indigo-500" style="width: 57px"></div>
+                  <span class="text-xs font-semibold text-slate-700">342</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">3</span>
+                <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700">GM</div>
+                <span class="text-xs font-medium text-slate-800 flex-1">Grayson Mitchell</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 rounded-full bg-emerald-500" style="width: 41px"></div>
+                  <span class="text-xs font-semibold text-slate-700">247</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">4</span>
+                <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700">IF</div>
+                <span class="text-xs font-medium text-slate-800 flex-1">Irene Foster</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 rounded-full bg-amber-400" style="width: 29px"></div>
+                  <span class="text-xs font-semibold text-slate-700">176</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold flex items-center justify-center">5</span>
+                <div class="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center text-[10px] font-bold text-sky-700">LT</div>
+                <span class="text-xs font-medium text-slate-800 flex-1">Luke Turner</span>
+                <div class="flex items-center gap-2">
+                  <div class="h-1.5 rounded-full bg-sky-500" style="width: 18px"></div>
+                  <span class="text-xs font-semibold text-slate-700">109</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Export History -->
+          <div class="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div class="text-sm font-semibold text-slate-800">Recent Exports</div>
+              <button class="text-xs text-indigo-600 hover:underline font-medium">View all</button>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-800">AWS Partners — CTO/VP Eng</div>
+                  <div class="text-[10px] text-slate-500">156 contacts · Strong + Medium only</div>
+                </div>
+                <span class="text-[10px] text-slate-400 flex-shrink-0">Today</span>
+              </div>
+              <div class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-800">ISV Decision Makers</div>
+                  <div class="text-[10px] text-slate-500">89 contacts · All scored</div>
+                </div>
+                <span class="text-[10px] text-slate-400 flex-shrink-0">Jun 29</span>
+              </div>
+              <div class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
+                <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-800">Enterprise CFOs — Series B+</div>
+                  <div class="text-[10px] text-slate-500">42 contacts · Jasons' connections only</div>
+                </div>
+                <span class="text-[10px] text-slate-400 flex-shrink-0">Jun 27</span>
+              </div>
+              <div class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
+                <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-medium text-slate-800">Stripe Account Coverage</div>
+                  <div class="text-[10px] text-slate-500">15 contacts · Target account export</div>
+                </div>
+                <span class="text-[10px] text-slate-400 flex-shrink-0">Jun 24</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-medium text-slate-500 mr-1">Quick Actions:</span>
+          <button @click="setView('team')" class="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Upload Connections
+          </button>
+          <button @click="icpModal=true" class="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create ICP
+          </button>
+          <button @click="setView('connections')" class="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            View Unscored
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= ICP PROFILES ======= -->
+    <div x-show="view === 'icp'" class="flex-1 overflow-y-auto" id="view-icp">
+      <div class="px-7 py-5 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">ICP Profiles</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Define who you're looking for — match across your entire team network</p>
+        </div>
+        <button @click="icpModal=true" class="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Profile
+        </button>
+      </div>
+      <div class="p-7">
+        <!-- Summary -->
+        <div class="flex items-center gap-6 mb-6 px-5 py-3.5 bg-indigo-50 rounded-xl border border-indigo-100">
+          <div class="text-center">
+            <div class="text-xl font-bold text-indigo-700">3</div>
+            <div class="text-xs text-indigo-500">Active Profiles</div>
+          </div>
+          <div class="w-px h-8 bg-indigo-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-indigo-700">557</div>
+            <div class="text-xs text-indigo-500">Total Matches</div>
+          </div>
+          <div class="w-px h-8 bg-indigo-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-indigo-700">47,218</div>
+            <div class="text-xs text-indigo-500">Connections Scanned</div>
+          </div>
+          <div class="w-px h-8 bg-indigo-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-indigo-700">1.2%</div>
+            <div class="text-xs text-indigo-500">Match Rate</div>
+          </div>
+        </div>
+
+        <!-- ICP Cards -->
+        <div class="grid grid-cols-3 gap-5" id="icp-cards">
+          <template x-for="profile in icpProfiles" :key="profile.id">
+            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                  </div>
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                </div>
+                <span class="text-[10px] text-slate-400" x-text="profile.created"></span>
+              </div>
+              <h3 class="font-semibold text-slate-900 text-sm mb-1" x-text="profile.name"></h3>
+              <p class="text-xs text-slate-500 mb-3" x-text="profile.description"></p>
+              <!-- Criteria chips -->
+              <div class="flex flex-wrap gap-1.5 mb-4">
+                <template x-for="chip in profile.chips" :key="chip">
+                  <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-medium" x-text="chip"></span>
+                </template>
+              </div>
+              <!-- Match count -->
+              <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                <div>
+                  <span class="text-lg font-bold text-indigo-700" x-text="profile.matches.toLocaleString()"></span>
+                  <span class="text-xs text-slate-500 ml-1">matches</span>
+                </div>
+                <button @click="setView('connections')" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">View matches →</button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Add new card -->
+          <div @click="icpModal=true" class="border-2 border-dashed border-slate-200 rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors min-h-[180px]">
+            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <span class="text-sm font-medium text-slate-500">Create New Profile</span>
+            <span class="text-xs text-slate-400 mt-1">Define titles, firmographics + more</span>
+          </div>
+        </div>
+
+        <!-- How ICP matching works -->
+        <div class="mt-6 bg-slate-50 rounded-xl border border-slate-100 p-5">
+          <div class="text-sm font-semibold text-slate-700 mb-3">How ICP Matching Works</div>
+          <div class="grid grid-cols-4 gap-4">
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-700">1</div>
+              <div>
+                <div class="text-xs font-medium text-slate-800">Define Criteria</div>
+                <div class="text-xs text-slate-500 mt-0.5">Set titles, industries, seniority, company size</div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-700">2</div>
+              <div>
+                <div class="text-xs font-medium text-slate-800">Scan Network</div>
+                <div class="text-xs text-slate-500 mt-0.5">We match against 47K+ enriched connections</div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-700">3</div>
+              <div>
+                <div class="text-xs font-medium text-slate-800">Score Relationships</div>
+                <div class="text-xs text-slate-500 mt-0.5">Team rates how well they know each match</div>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-700">4</div>
+              <div>
+                <div class="text-xs font-medium text-slate-800">Export &amp; Activate</div>
+                <div class="text-xs text-slate-500 mt-0.5">Push to HeyReach, SmartLead, or CRM</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Match trend bar chart -->
+        <div class="mt-5 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-semibold text-slate-800">ICP Match Trend</div>
+            <span class="text-xs text-slate-400">Last 30 days · All profiles</span>
+          </div>
+          <div class="flex items-end gap-1" style="height:64px;" class="mb-2">
+            <div class="flex-1 bg-indigo-100 rounded-sm" style="height: 32%"></div>
+            <div class="flex-1 bg-indigo-100 rounded-sm" style="height: 41%"></div>
+            <div class="flex-1 bg-indigo-200 rounded-sm" style="height: 28%"></div>
+            <div class="flex-1 bg-indigo-100 rounded-sm" style="height: 55%"></div>
+            <div class="flex-1 bg-indigo-200 rounded-sm" style="height: 38%"></div>
+            <div class="flex-1 bg-indigo-100 rounded-sm" style="height: 62%"></div>
+            <div class="flex-1 bg-indigo-200 rounded-sm" style="height: 48%"></div>
+            <div class="flex-1 bg-indigo-300 rounded-sm" style="height: 71%"></div>
+            <div class="flex-1 bg-indigo-200 rounded-sm" style="height: 59%"></div>
+            <div class="flex-1 bg-indigo-400 rounded-sm" style="height: 85%"></div>
+            <div class="flex-1 bg-indigo-500 rounded-sm" style="height: 78%"></div>
+            <div class="flex-1 bg-indigo-600 rounded-sm" style="height: 100%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1 mb-3">
+            <span>Jun 1</span><span>Jun 8</span><span>Jun 15</span><span>Jun 22</span><span>Jul 1</span>
+          </div>
+          <div class="flex items-center gap-6 pt-3 border-t border-slate-100">
+            <div class="text-center">
+              <div class="text-sm font-bold text-slate-900">+47%</div>
+              <div class="text-[10px] text-slate-500">vs. last month</div>
+            </div>
+            <div class="text-center">
+              <div class="text-sm font-bold text-indigo-700">557</div>
+              <div class="text-[10px] text-slate-500">total matches</div>
+            </div>
+            <div class="text-center">
+              <div class="text-sm font-bold text-emerald-700">23%</div>
+              <div class="text-[10px] text-slate-500">scored so far</div>
+            </div>
+            <div class="text-center">
+              <div class="text-sm font-bold text-amber-700">429</div>
+              <div class="text-[10px] text-slate-500">awaiting score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div x-show="view === 'connections'" class="flex-1 flex flex-col overflow-hidden" id="view-connections">
+      <!-- Top bar -->
+      <div class="px-6 py-3.5 border-b border-slate-100 bg-white flex items-center gap-3 flex-shrink-0" id="conn-topbar">
+        <div class="flex-1">
+          <h1 class="text-sm font-bold text-slate-900">Connections</h1>
+          <p class="text-xs text-slate-500">Showing 156 connections matching <span class="font-medium text-indigo-600">AWS Partners — CTO/VP Eng</span> across 5 team members</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" x-model="connSearch" placeholder="Search connections…" class="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48" />
+          </div>
+          <select x-model="connIcpFilter" class="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option>AWS Partners — CTO/VP Eng</option>
+            <option>Enterprise CFOs — Series B+</option>
+            <option>ISV Decision Makers</option>
+            <option>All Connections</option>
+          </select>
+          <button id="export-btn" @click="exportCsv()" class="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk action bar -->
+      <template x-if="selectedConns.length > 0">
+        <div class="px-6 py-2 bg-indigo-600 flex items-center gap-3 flex-shrink-0 fade-in">
+          <span class="text-xs font-semibold text-white" x-text="`${selectedConns.length} selected`"></span>
+          <button class="px-3 py-1 bg-white text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-50">Export Selected</button>
+          <button @click="selectedConns=[]" class="text-xs text-indigo-200 hover:text-white ml-auto">Clear selection</button>
+        </div>
+      </template>
+
+      <!-- Body: sidebar + table -->
+      <div class="flex flex-1 overflow-hidden">
+
+        <!-- Filter Sidebar -->
+        <aside class="w-48 flex-shrink-0 border-r border-slate-100 bg-white overflow-y-auto p-4 space-y-5" id="conn-filters">
+          <div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Relationship</div>
+            <div class="space-y-1">
+              <template x-for="s in ['All', 'Strong', 'Medium', 'Weak', 'Unscored']" :key="s">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                  <input type="radio" :value="s" x-model="connStrFilter" name="str" class="text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+                  <span class="text-xs text-slate-600 group-hover:text-slate-900" x-text="s"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Last Contact</div>
+            <div class="space-y-1">
+              <template x-for="c in ['Any', '<30 days', '30–90 days', '>90 days', 'Never']" :key="c">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                  <input type="radio" :value="c" x-model="connContactFilter" name="contact" class="text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+                  <span class="text-xs text-slate-600 group-hover:text-slate-900" x-text="c"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Owner</div>
+            <div class="space-y-1">
+              <template x-for="o in ['Jason', 'Grayson', 'Irene', 'Jessica', 'Luke']" :key="o">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                  <input type="checkbox" :value="o" x-model="connOwnerFilter" class="rounded text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+                  <span class="text-xs text-slate-600 group-hover:text-slate-900" x-text="o"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Company Size</div>
+            <div class="space-y-1">
+              <template x-for="sz in ['Any', 'Enterprise (5K+)', 'Mid-Market (500–5K)', 'SMB (<500)']" :key="sz">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                  <input type="radio" :value="sz" x-model="connSizeFilter" name="size" class="text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+                  <span class="text-xs text-slate-600 group-hover:text-slate-900 leading-snug" x-text="sz"></span>
+                </label>
+              </template>
+            </div>
+          </div>
+          <button @click="clearConnFilters()" class="text-[10px] text-indigo-500 hover:text-indigo-700 font-medium">Clear All Filters</button>
+        </aside>
+
+        <!-- Table area -->
+        <div class="flex-1 overflow-auto bg-white">
+          <table class="w-full table-fixed text-xs" id="conn-table">
+            <colgroup>
+              <col style="width:28px"/>
+              <col style="width:145px"/>
+              <col style="width:160px"/>
+              <col style="width:115px"/>
+              <col style="width:80px"/>
+              <col style="width:85px"/>
+              <col style="width:80px"/>
+              <col style="width:80px"/>
+            </colgroup>
+            <thead class="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+              <tr>
+                <th class="px-3 py-2.5 text-left">
+                  <input type="checkbox" @click="toggleAll()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                </th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Title</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Company</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Via</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Strength</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Last Contact</th>
+                <th class="px-2 py-2.5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Score</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <template x-for="(conn, idx) in filteredConnections" :key="conn.id">
+                <tr class="hover:bg-slate-50/70 transition-colors" :class="selectedConns.includes(conn.id) ? 'bg-indigo-50/40' : ''">
+                  <td class="px-3 py-2">
+                    <input type="checkbox" :value="conn.id" x-model="selectedConns" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-semibold" :style="`background: ${conn.color}1a; color: ${conn.color}`" x-text="conn.initials"></div>
+                      <span class="font-medium text-slate-800 truncate" x-text="conn.name"></span>
+                    </div>
+                  </td>
+                  <td class="px-2 py-2 text-slate-600 truncate" x-text="conn.title"></td>
+                  <td class="px-2 py-2 text-slate-700 font-medium truncate" x-text="conn.company"></td>
+                  <td class="px-2 py-2 text-slate-500 truncate" x-text="conn.via"></td>
+                  <td class="px-2 py-2">
+                    <span class="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium" :class="`strength-${conn.strength.toLowerCase()}`" x-text="conn.strength"></span>
+                  </td>
+                  <td class="px-2 py-2 text-slate-500" x-text="conn.lastContact"></td>
+                  <td class="px-2 py-2">
+                    <button @click="openScore(conn)" class="px-2 py-1 text-[10px] font-medium rounded-md border transition-colors"
+                      :class="conn.strength === 'Unscored' ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'text-slate-600 border-slate-200 hover:bg-slate-100'"
+                      x-text="conn.strength === 'Unscored' ? 'Score' : 'Edit'"></button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <!-- Pagination -->
+          <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-white sticky bottom-0">
+            <span class="text-xs text-slate-500" x-text="`Showing ${filteredConnections.length} of 156 connections`"></span>
+            <button class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Load More</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= TEAM ======= -->
+    <div x-show="view === 'team'" class="flex-1 overflow-y-auto" id="view-team">
+      <div class="px-7 py-5 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">Team</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Manage members, track upload status and scoring progress</p>
+        </div>
+        <button class="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Invite Member
+        </button>
+      </div>
+      <div class="p-7">
+        <!-- Team summary bar -->
+        <div class="flex items-center gap-6 mb-6 px-5 py-3.5 bg-white rounded-xl border border-slate-100 shadow-sm" id="team-summary">
+          <div class="text-center">
+            <div class="text-xl font-bold text-slate-900">47,218</div>
+            <div class="text-xs text-slate-500">Total Connections</div>
+          </div>
+          <div class="w-px h-8 bg-slate-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-emerald-600">18.6%</div>
+            <div class="text-xs text-slate-500">Average Scored</div>
+          </div>
+          <div class="w-px h-8 bg-slate-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-slate-900">5</div>
+            <div class="text-xs text-slate-500">Active Members</div>
+          </div>
+          <div class="w-px h-8 bg-slate-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-indigo-700">3,214</div>
+            <div class="text-xs text-slate-500">Network Overlaps</div>
+          </div>
+          <div class="w-px h-8 bg-slate-200"></div>
+          <div class="text-center">
+            <div class="text-xl font-bold text-slate-900">2,847</div>
+            <div class="text-xs text-slate-500">ICP Matches</div>
+          </div>
+        </div>
+
+        <!-- Member cards grid -->
+        <div class="grid grid-cols-2 gap-5" id="team-cards">
+          <template x-for="member in teamMembers" :key="member.id">
+            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-base font-bold" :style="`background: ${member.color}22; color: ${member.color}`" x-text="member.initials"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold text-slate-900" x-text="member.name"></div>
+                  <div class="text-xs text-slate-500" x-text="member.role"></div>
+                  <div class="text-[10px] text-slate-400 mt-0.5" x-text="`Last upload: ${member.lastUpload}`"></div>
+                </div>
+                <span class="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full" :class="member.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="member.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                  <span x-text="member.status"></span>
+                </span>
+              </div>
+
+              <!-- Stats -->
+              <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="text-center p-2 bg-slate-50 rounded-lg">
+                  <div class="text-sm font-bold text-slate-800" x-text="member.connections.toLocaleString()"></div>
+                  <div class="text-[10px] text-slate-500">Connections</div>
+                </div>
+                <div class="text-center p-2 bg-slate-50 rounded-lg">
+                  <div class="text-sm font-bold text-indigo-700" x-text="member.icpMatches"></div>
+                  <div class="text-[10px] text-slate-500">ICP Matches</div>
+                </div>
+                <div class="text-center p-2 bg-slate-50 rounded-lg">
+                  <div class="text-sm font-bold text-slate-800" x-text="`${member.scoredPct}%`"></div>
+                  <div class="text-[10px] text-slate-500">Scored</div>
+                </div>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="mb-1.5 flex justify-between items-center">
+                <span class="text-[10px] text-slate-500">Scoring progress</span>
+                <span class="text-[10px] font-semibold text-slate-700" x-text="`${member.scoredPct}%`"></span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :class="member.scoredPct > 50 ? 'bg-emerald-500' : member.scoredPct > 25 ? 'bg-amber-400' : 'bg-red-400'" :style="`width: ${member.scoredPct}%`"></div>
+              </div>
+
+              <!-- Strongest connections -->
+              <div class="mt-3 pt-3 border-t border-slate-100">
+                <div class="text-[10px] font-medium text-slate-500 mb-1.5">Strongest connections</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <template x-for="sc in member.strongest" :key="sc">
+                    <span class="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-medium" x-text="sc"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Network Overlap Analysis -->
+        <div class="mt-5 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="text-sm font-semibold text-slate-800">Network Overlap Analysis</div>
+              <div class="text-xs text-slate-500 mt-0.5">Connections shared between team members — multiplied warm intro opportunities</div>
+            </div>
+            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">3,214 shared connections</span>
+          </div>
+          <div class="grid grid-cols-5 gap-3">
+            <div class="p-3 bg-slate-50 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 mb-1.5">Jason ∩ Grayson</div>
+              <div class="text-lg font-bold text-slate-800">842</div>
+              <div class="text-[10px] text-emerald-600 font-medium">7.5% overlap</div>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 mb-1.5">Jason ∩ Jessica</div>
+              <div class="text-lg font-bold text-slate-800">1,093</div>
+              <div class="text-[10px] text-emerald-600 font-medium">9.7% overlap</div>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 mb-1.5">Grayson ∩ Irene</div>
+              <div class="text-lg font-bold text-slate-800">634</div>
+              <div class="text-[10px] text-amber-600 font-medium">6.8% overlap</div>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 mb-1.5">Irene ∩ Luke</div>
+              <div class="text-lg font-bold text-slate-800">421</div>
+              <div class="text-[10px] text-amber-600 font-medium">4.5% overlap</div>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 mb-1.5">All 5 members</div>
+              <div class="text-lg font-bold text-slate-800">224</div>
+              <div class="text-[10px] text-indigo-600 font-medium">universally known</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload instructions banner -->
+        <div class="mt-4 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-start gap-4">
+          <div class="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          </div>
+          <div class="flex-1">
+            <div class="text-sm font-semibold text-indigo-900 mb-1">How to Upload Connections</div>
+            <div class="text-xs text-indigo-700 leading-relaxed mb-3">Each team member exports their LinkedIn connections and uploads here. Circlepath enriches contacts with title, company, seniority, and firmographic data, then runs ICP matching automatically.</div>
+            <div class="flex gap-6">
+              <div class="flex items-start gap-2">
+                <div class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold text-indigo-700">1</div>
+                <div class="text-xs text-indigo-700">LinkedIn Settings → Data privacy → Get a copy of your data → Connections</div>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold text-indigo-700">2</div>
+                <div class="text-xs text-indigo-700">Download the CSV and drag it here — enrichment runs automatically</div>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold text-indigo-700">3</div>
+                <div class="text-xs text-indigo-700">Enrichment takes ~2 min. ICP matching re-runs automatically on each upload</div>
+              </div>
+            </div>
+          </div>
+          <button class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 flex-shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Upload CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= TARGET ACCOUNTS ======= -->
+    <div x-show="view === 'accounts'" class="flex-1 overflow-y-auto" id="view-accounts">
+      <div class="px-7 py-5 border-b border-slate-100 bg-white flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">Target Accounts</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Track which accounts your team has connections at</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="relative" x-data="{ open: false }">
+            <button @click="open=!open" class="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Accounts
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div x-show="open" @click.away="open=false" x-cloak class="absolute right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-100 py-1 w-48 z-50 fade-in">
+              <button class="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Import CSV
+              </button>
+              <button class="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                Connect HubSpot
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-7">
+        <!-- Summary stats -->
+        <div class="grid grid-cols-4 gap-4 mb-6" id="acct-stats">
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xl font-bold text-slate-900">24</div>
+            <div class="text-xs text-slate-500">Target Accounts</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xl font-bold text-emerald-600">18</div>
+            <div class="text-xs text-slate-500">With Connections</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xl font-bold text-indigo-700">75%</div>
+            <div class="text-xs text-slate-500">Coverage Rate</div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xl font-bold text-amber-600">6</div>
+            <div class="text-xs text-slate-500">Zero Coverage</div>
+          </div>
+        </div>
+
+        <!-- Coverage breakdown by industry -->
+        <div class="grid grid-cols-3 gap-4 mb-5">
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xs font-semibold text-slate-700 mb-3">Coverage by Segment</div>
+            <div class="space-y-2.5">
+              <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-600">Fintech</span><span class="font-medium text-slate-800">85%</span></div>
+                <div class="coverage-bar"><div class="coverage-fill bg-emerald-500" style="width:85%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-600">DevTools / Cloud</span><span class="font-medium text-slate-800">61%</span></div>
+                <div class="coverage-bar"><div class="coverage-fill bg-emerald-500" style="width:61%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-600">Data / Analytics</span><span class="font-medium text-slate-800">42%</span></div>
+                <div class="coverage-bar"><div class="coverage-fill bg-amber-400" style="width:42%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-600">Design / Productivity</span><span class="font-medium text-slate-800">28%</span></div>
+                <div class="coverage-bar"><div class="coverage-fill bg-amber-400" style="width:28%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xs font-semibold text-slate-700 mb-3">Who Has Most Reach</div>
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">JL</div>
+                <span class="text-xs text-slate-700 flex-1">Jason</span>
+                <span class="text-xs font-semibold text-slate-800">9 accounts</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-700">GM</div>
+                <span class="text-xs text-slate-700 flex-1">Grayson</span>
+                <span class="text-xs font-semibold text-slate-800">7 accounts</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center text-[10px] font-bold text-violet-700">JP</div>
+                <span class="text-xs text-slate-700 flex-1">Jessica</span>
+                <span class="text-xs font-semibold text-slate-800">6 accounts</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700">IF</div>
+                <span class="text-xs text-slate-700 flex-1">Irene</span>
+                <span class="text-xs font-semibold text-slate-800">5 accounts</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center text-[10px] font-bold text-sky-700">LT</div>
+                <span class="text-xs text-slate-700 flex-1">Luke</span>
+                <span class="text-xs font-semibold text-slate-800">4 accounts</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+            <div class="text-xs font-semibold text-slate-700 mb-3">Zero Coverage Accounts</div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+                <div class="w-1 h-8 rounded-full bg-red-400 flex-shrink-0"></div>
+                <div>
+                  <div class="text-xs font-medium text-slate-800">Vercel</div>
+                  <div class="text-[10px] text-slate-500">No connections — need warm intro</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
+                <div class="w-1 h-8 rounded-full bg-amber-400 flex-shrink-0"></div>
+                <div>
+                  <div class="text-xs font-medium text-slate-800">Notion</div>
+                  <div class="text-[10px] text-slate-500">1 connection — Ryan Walsh (Med)</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg">
+                <div class="w-1 h-8 rounded-full bg-amber-400 flex-shrink-0"></div>
+                <div>
+                  <div class="text-xs font-medium text-slate-800">MongoDB</div>
+                  <div class="text-[10px] text-slate-500">2 connections — low coverage (12%)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account cards -->
+        <div class="space-y-3" id="acct-cards">
+          <template x-for="acct in targetAccounts" :key="acct.id">
+            <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+              <div class="p-4 flex items-center gap-4 cursor-pointer hover:bg-slate-50/70 transition-colors" @click="acct.expanded = !acct.expanded">
+                <!-- Logo placeholder -->
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold border border-slate-100" :style="`background: ${acct.color}18; color: ${acct.color}`" x-text="acct.ticker"></div>
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="font-semibold text-slate-900 text-sm" x-text="acct.name"></span>
+                    <span class="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full" x-text="acct.industry"></span>
+                    <span class="text-[10px] text-slate-400" x-text="acct.size"></span>
+                  </div>
+                  <!-- Coverage bar -->
+                  <div class="flex items-center gap-2">
+                    <div class="coverage-bar flex-1" style="max-width: 180px;">
+                      <div class="coverage-fill" :class="acct.coverage >= 50 ? 'bg-emerald-500' : acct.coverage >= 25 ? 'bg-amber-400' : 'bg-red-400'" :style="`width: ${acct.coverage}%`"></div>
+                    </div>
+                    <span class="text-[11px] font-semibold" :class="acct.coverage >= 50 ? 'text-emerald-600' : acct.coverage >= 25 ? 'text-amber-600' : 'text-red-500'" x-text="`${acct.coverage}% coverage`"></span>
+                  </div>
+                </div>
+                <!-- Conn count -->
+                <div class="text-center flex-shrink-0">
+                  <div class="text-base font-bold text-slate-800" x-text="acct.connCount"></div>
+                  <div class="text-[10px] text-slate-500">connections</div>
+                </div>
+                <!-- Expand icon -->
+                <svg class="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform" :class="acct.expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+
+              <!-- Expanded connections -->
+              <template x-if="acct.expanded">
+                <div class="border-t border-slate-100 px-4 py-3 bg-slate-50/60 fade-in">
+                  <template x-if="acct.connCount === 0">
+                    <div class="flex items-center gap-2 text-xs text-slate-500 py-1">
+                      <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      No connections at this account yet.
+                      <button @click="setView('connections')" class="text-indigo-600 hover:underline ml-1">Find warm intros →</button>
+                    </div>
+                  </template>
+                  <template x-if="acct.connCount > 0">
+                    <div class="space-y-2">
+                      <template x-for="rel in acct.relationships" :key="rel.member + rel.contact">
+                        <div class="flex items-center gap-2.5">
+                          <span class="text-xs font-medium text-indigo-700 w-16 flex-shrink-0" x-text="rel.member"></span>
+                          <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                          <span class="text-xs text-slate-700" x-text="rel.contact"></span>
+                          <span class="text-[10px] px-1.5 py-0.5 rounded-full ml-1" :class="`strength-${rel.strength.toLowerCase()}`" x-text="rel.strength"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <!-- Enrichment status callout -->
+        <div class="mt-5 bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-4">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="flex-1">
+            <div class="text-xs font-semibold text-slate-800">Account data last refreshed: Jun 30, 2026</div>
+            <div class="text-xs text-slate-500 mt-0.5">Company enrichment via Clearbit + LinkedIn — employee counts, funding stage, and HQ location automatically updated.</div>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-500">
+            <span>24 accounts</span>
+            <span class="text-slate-300">|</span>
+            <span>18 enriched</span>
+            <span class="text-slate-300">|</span>
+            <span class="text-amber-600 font-medium">6 pending</span>
+          </div>
+          <button class="px-3 py-1.5 bg-white border border-slate-200 text-xs text-slate-700 font-medium rounded-lg hover:bg-slate-100 flex-shrink-0">Refresh Now</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function app() {
+  return {
+    view: 'dashboard',
+    scoreModal: false,
+    icpModal: false,
+    scoreTarget: {},
+    toast: { show: false, message: '' },
+    newIcp: { name: '', titles: [], seniority: [], industries: [], sizes: [], locations: [], keywords: [] },
+    connSearch: '',
+    connIcpFilter: 'AWS Partners — CTO/VP Eng',
+    connStrFilter: 'All',
+    connContactFilter: 'Any',
+    connOwnerFilter: ['Jason','Grayson','Irene','Jessica','Luke'],
+    connSizeFilter: 'Any',
+    selectedConns: [],
+
+    // Tour
+    tourActive: false,
+    tourStep: 0,
+    tourRect: null,
+
+    titleSuggestions: [
+      'CTO','Chief Technology Officer','VP Engineering','VP of Engineering',
+      'Head of Engineering','Director of Engineering','SVP Technology',
+      'CIO','Chief Information Officer','Principal Engineer',
+      'VP Product','Head of Platform','Chief Architect'
+    ],
+
+    navItems: [
+      { id: 'dashboard', label: 'Dashboard', badge: null,
+        icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>' },
+      { id: 'icp', label: 'ICP Profiles', badge: '3',
+        icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>' },
+      { id: 'connections', label: 'Connections', badge: '156',
+        icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>' },
+      { id: 'team', label: 'Team', badge: null,
+        icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
+      { id: 'accounts', label: 'Target Accounts', badge: '24',
+        icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>' },
+    ],
+
+    topMatches: [
+      { name: 'Sarah Chen',     title: 'VP Sales',         company: 'Datadog',    initials: 'SC', color: '#4F46E5', via: 'Grayson' },
+      { name: 'Marcus Kim',     title: 'CTO',              company: 'HashiCorp',  initials: 'MK', color: '#059669', via: 'Jason' },
+      { name: 'Priya Nair',     title: 'VP Engineering',   company: 'Confluent',  initials: 'PN', color: '#D97706', via: 'Irene' },
+      { name: 'Jordan Lee',     title: 'Head of Platform', company: 'Stripe',     initials: 'JL', color: '#7C3AED', via: 'Jessica' },
+      { name: 'Alex Torres',    title: 'Chief Architect',  company: 'Snowflake',  initials: 'AT', color: '#0EA5E9', via: 'Luke' },
+    ],
+
+    activityFeed: [
+      { id:1,  initials:'IR', color:'#D97706', text:'Irene uploaded 2,847 new connections',                                        time:'2h ago' },
+      { id:2,  initials:'CP', color:'#4F46E5', text:'New ICP match: Sarah Chen (VP Sales, Datadog) via Grayson',                   time:'4h ago' },
+      { id:3,  initials:'JE', color:'#7C3AED', text:'Jessica scored 23 connections as "Close"',                                    time:'5h ago' },
+      { id:4,  initials:'SY', color:'#059669', text:'Company enriched: Snowflake (14,822 employees, Enterprise, San Mateo)',       time:'6h ago' },
+      { id:5,  initials:'LK', color:'#0EA5E9', text:"Luke's LinkedIn refresh processed (1,204 companies updated)",                 time:'Yesterday' },
+      { id:6,  initials:'CP', color:'#4F46E5', text:'ICP "AWS Partners — CTO/VP Eng" matched 156 new connections',                time:'Yesterday' },
+      { id:7,  initials:'GR', color:'#10B981', text:'Grayson marked "Do Not Contact" on 3 connections',                           time:'2 days ago' },
+      { id:8,  initials:'JA', color:'#6366F1', text:'New team member invited: Ryan Cooper',                                        time:'2 days ago' },
+      { id:9,  initials:'HS', color:'#F59E0B', text:'Target account added: MongoDB (imported from HubSpot)',                      time:'3 days ago' },
+      { id:10, initials:'WD', color:'#8B5CF6', text:'Weekly digest: 47 connections scored, 12 exported, 3 meetings booked',       time:'1 week ago' },
+    ],
+
+    icpProfiles: [
+      {
+        id: 1, name: 'AWS Partners — CTO/VP Eng', matches: 156, created: 'Jun 15, 2026',
+        description: 'Technology leaders at AWS partner companies in the US.',
+        chips: ['CTO', 'VP Engineering', 'Head of Eng', 'Technology', '201–10K employees', 'US']
+      },
+      {
+        id: 2, name: 'Enterprise CFOs — Series B+', matches: 89, created: 'Jun 20, 2026',
+        description: 'Finance leaders at growth-stage companies with institutional funding.',
+        chips: ['CFO', 'VP Finance', 'Financial Services', '500+ employees', 'Series B+']
+      },
+      {
+        id: 3, name: 'ISV Decision Makers', matches: 312, created: 'Jun 28, 2026',
+        description: 'Buyers and technical decision makers at independent software vendors.',
+        chips: ['CTO', 'VP Product', 'Director Eng', 'ISV / SaaS', '51–5K employees']
+      },
+    ],
+
+    connections: [
+      { id:1,  name:'Sarah Chen',      initials:'SC', color:'#4F46E5', title:'VP Sales',               company:'Datadog',    via:'Grayson',  strength:'Strong',   lastContact:'3 days ago',  know:'', method:'', dnc:false },
+      { id:2,  name:'Marcus Kim',      initials:'MK', color:'#059669', title:'CTO',                    company:'HashiCorp',  via:'Jason',    strength:'Strong',   lastContact:'1 week ago',  know:'', method:'', dnc:false },
+      { id:3,  name:'Priya Nair',      initials:'PN', color:'#D97706', title:'VP Engineering',         company:'Confluent',  via:'Irene',    strength:'Strong',   lastContact:'2 weeks ago', know:'', method:'', dnc:false },
+      { id:4,  name:'Jordan Lee',      initials:'JL', color:'#7C3AED', title:'Head of Platform',       company:'Stripe',     via:'Jessica',  strength:'Strong',   lastContact:'5 days ago',  know:'', method:'', dnc:false },
+      { id:5,  name:'Alex Torres',     initials:'AT', color:'#0EA5E9', title:'Chief Architect',        company:'Snowflake',  via:'Luke',     strength:'Strong',   lastContact:'Today',       know:'', method:'', dnc:false },
+      { id:6,  name:'Lisa Wang',       initials:'LW', color:'#8B5CF6', title:'CFO',                    company:'Snowflake',  via:'Jason',    strength:'Medium',   lastContact:'3 weeks ago', know:'', method:'', dnc:false },
+      { id:7,  name:'David Okafor',    initials:'DO', color:'#EC4899', title:'VP Product',             company:'Airtable',   via:'Grayson',  strength:'Medium',   lastContact:'1 month ago', know:'', method:'', dnc:false },
+      { id:8,  name:'Nina Patel',      initials:'NP', color:'#F59E0B', title:'Director DevOps',        company:'MongoDB',    via:'Irene',    strength:'Medium',   lastContact:'2 weeks ago', know:'', method:'', dnc:false },
+      { id:9,  name:'Tom Bradley',     initials:'TB', color:'#10B981', title:'SVP Technology',         company:'Ramp',       via:'Luke',     strength:'Medium',   lastContact:'1 week ago',  know:'', method:'', dnc:false },
+      { id:10, name:'Camille Dubois',  initials:'CD', color:'#6366F1', title:'Head of Security',       company:'Figma',      via:'Jessica',  strength:'Medium',   lastContact:'4 days ago',  know:'', method:'', dnc:false },
+      { id:11, name:'Ryan Walsh',      initials:'RW', color:'#14B8A6', title:'VP Engineering',         company:'Notion',     via:'Grayson',  strength:'Medium',   lastContact:'3 weeks ago', know:'', method:'', dnc:false },
+      { id:12, name:'Keiko Tanaka',    initials:'KT', color:'#F97316', title:'CIO',                    company:'Rippling',   via:'Jason',    strength:'Medium',   lastContact:'2 months ago',know:'', method:'', dnc:false },
+      { id:13, name:'Ben Schwartz',    initials:'BS', color:'#84CC16', title:'Director of Engineering',company:'Plaid',      via:'Luke',     strength:'Medium',   lastContact:'1 month ago', know:'', method:'', dnc:false },
+      { id:14, name:'Sofia Alvarez',   initials:'SA', color:'#A78BFA', title:'VP Infrastructure',      company:'Brex',       via:'Irene',    strength:'Weak',     lastContact:'>3 months',   know:'', method:'', dnc:false },
+      { id:15, name:'Carlos Vega',     initials:'CV', color:'#FB923C', title:'Director Platform',      company:'Deel',       via:'Grayson',  strength:'Weak',     lastContact:'>6 months',   know:'', method:'', dnc:false },
+      { id:16, name:'Mia Johansson',   initials:'MJ', color:'#38BDF8', title:'Head of DevRel',         company:'Vercel',     via:'Jessica',  strength:'Weak',     lastContact:'Never',       know:'', method:'', dnc:false },
+      { id:17, name:'Ethan Park',      initials:'EP', color:'#4ADE80', title:'Staff Engineer',         company:'Remote',     via:'Luke',     strength:'Weak',     lastContact:'Never',       know:'', method:'', dnc:false },
+      { id:18, name:'Anika Ross',      initials:'AR', color:'#C084FC', title:'VP Technology',          company:'Lattice',    via:'Jason',    strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:19, name:'Derek Hughes',    initials:'DH', color:'#34D399', title:'Chief Product Officer',  company:'Culture Amp',via:'Grayson',  strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:20, name:'Olivia Monroe',   initials:'OM', color:'#60A5FA', title:'Head of Engineering',    company:'15Five',     via:'Irene',    strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:21, name:'James Whitfield', initials:'JW', color:'#FCD34D', title:'CTO',                    company:'Gusto',      via:'Jessica',  strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:22, name:'Rachel Kim',      initials:'RK', color:'#F87171', title:'VP Engineering',         company:'Rippling',   via:'Luke',     strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:23, name:'Noah Chen',       initials:'NC', color:'#818CF8', title:'Director Architecture',  company:'Datadog',    via:'Jason',    strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:24, name:'Isabelle Rossi',  initials:'IR', color:'#86EFAC', title:'VP Platform',            company:'Stripe',     via:'Grayson',  strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:25, name:'Chris Nakamura',  initials:'CN', color:'#FCA5A5', title:'Engineering Manager',    company:'Figma',      via:'Irene',    strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:26, name:'Wei Zhang',         initials:'WZ', color:'#A5B4FC', title:'VP Infrastructure',      company:'Datadog',    via:'Jason',    strength:'Medium',   lastContact:'3 weeks ago', know:'', method:'', dnc:false },
+      { id:27, name:'Sasha Petrov',      initials:'SP', color:'#6EE7B7', title:'Director of Platform',   company:'HashiCorp',  via:'Grayson',  strength:'Medium',   lastContact:'1 month ago', know:'', method:'', dnc:false },
+      { id:28, name:'Mei Lin',           initials:'ML', color:'#FDE68A', title:'CTO',                    company:'Plaid',      via:'Luke',     strength:'Strong',   lastContact:'1 week ago',  know:'', method:'', dnc:false },
+      { id:29, name:'Tobias Werner',     initials:'TW', color:'#FBCFE8', title:'Head of Cloud',          company:'Confluent',  via:'Jessica',  strength:'Unscored', lastContact:'Unknown',     know:'', method:'', dnc:false },
+      { id:30, name:'Amara Osei',        initials:'AO', color:'#BBF7D0', title:'VP Product Engineering', company:'Airtable',   via:'Irene',    strength:'Weak',     lastContact:'>90 days',    know:'', method:'', dnc:false },
+    ],
+
+    teamMembers: [
+      { id:1, name:'Jason Lara',     initials:'JL', color:'#4F46E5', role:'Founder / AE',       status:'Active', connections:11247, icpMatches:847, scoredPct:42, lastUpload:'Jun 28, 2026', strongest:['Marcus Kim','Lisa Wang','Noah Chen'] },
+      { id:2, name:'Grayson Mitchell',initials:'GM',color:'#059669', role:'Account Executive',  status:'Active', connections:9834,  icpMatches:622, scoredPct:31, lastUpload:'Jun 27, 2026', strongest:['Sarah Chen','David Okafor','Derek Hughes'] },
+      { id:3, name:'Irene Foster',   initials:'IF', color:'#D97706', role:'Sales Engineer',     status:'Active', connections:8412,  icpMatches:534, scoredPct:28, lastUpload:'Jun 28, 2026', strongest:['Priya Nair','Nina Patel','Sofia Alvarez'] },
+      { id:4, name:'Jessica Park',   initials:'JP', color:'#7C3AED', role:'SDR Manager',        status:'Active', connections:10293, icpMatches:712, scoredPct:55, lastUpload:'Jun 25, 2026', strongest:['Jordan Lee','Camille Dubois','Mia Johansson'] },
+      { id:5, name:'Luke Turner',    initials:'LT', color:'#0EA5E9', role:'Account Executive',  status:'Active', connections:7432,  icpMatches:394, scoredPct:22, lastUpload:'Jun 26, 2026', strongest:['Alex Torres','Tom Bradley','Ben Schwartz'] },
+    ],
+
+    targetAccounts: [
+      { id:1,  name:'Stripe',     ticker:'STR', color:'#635BFF', industry:'Fintech',    size:'~8,000 employees', coverage:89, connCount:15, expanded:false, relationships:[
+          { member:'Jason',   contact:'Jordan Lee (Head of Platform)',     strength:'Strong' },
+          { member:'Jason',   contact:'Isabelle Rossi (VP Platform)',      strength:'Unscored' },
+          { member:'Grayson', contact:'Rachel Kim (VP Engineering)',        strength:'Unscored' },
+          { member:'Jessica', contact:'Derek Hughes (CTO Projects)',        strength:'Medium' },
+        ]},
+      { id:2,  name:'Datadog',    ticker:'DDG', color:'#774AA4', industry:'Monitoring', size:'~6,500 employees', coverage:78, connCount:12, expanded:false, relationships:[
+          { member:'Grayson', contact:'Sarah Chen (VP Sales)',              strength:'Strong' },
+          { member:'Jason',   contact:'Noah Chen (Director Architecture)',  strength:'Unscored' },
+          { member:'Irene',   contact:'Priya Nair (VP Engineering Infra)',  strength:'Medium' },
+        ]},
+      { id:3,  name:'Confluent',  ticker:'CFLT',color:'#0066CC', industry:'Data',       size:'~3,200 employees', coverage:67, connCount:9,  expanded:false, relationships:[
+          { member:'Irene',   contact:'Priya Nair (VP Engineering)',        strength:'Strong' },
+          { member:'Luke',    contact:'Ben Schwartz (Director Eng)',         strength:'Medium' },
+        ]},
+      { id:4,  name:'Figma',      ticker:'FIG', color:'#F24E1E', industry:'Design',     size:'~1,500 employees', coverage:56, connCount:7,  expanded:false, relationships:[
+          { member:'Jessica', contact:'Camille Dubois (Head of Security)',  strength:'Medium' },
+          { member:'Irene',   contact:'Chris Nakamura (Eng Manager)',       strength:'Unscored' },
+        ]},
+      { id:5,  name:'Snowflake',  ticker:'SNW', color:'#29B5E8', industry:'Data Cloud', size:'~14,800 employees',coverage:45, connCount:6,  expanded:false, relationships:[
+          { member:'Luke',    contact:'Alex Torres (Chief Architect)',      strength:'Strong' },
+          { member:'Jason',   contact:'Lisa Wang (CFO)',                    strength:'Medium' },
+        ]},
+      { id:6,  name:'Ramp',       ticker:'RMP', color:'#FF4C00', industry:'Fintech',    size:'~1,200 employees', coverage:34, connCount:4,  expanded:false, relationships:[
+          { member:'Luke',    contact:'Tom Bradley (SVP Technology)',       strength:'Medium' },
+          { member:'Jason',   contact:'Keiko Tanaka (CIO)',                 strength:'Medium' },
+        ]},
+      { id:7,  name:'HashiCorp',  ticker:'HCP', color:'#4F46E5', industry:'DevTools',   size:'~2,400 employees', coverage:23, connCount:3,  expanded:false, relationships:[
+          { member:'Jason',   contact:'Marcus Kim (CTO)',                   strength:'Strong' },
+        ]},
+      { id:8,  name:'MongoDB',    ticker:'MDB', color:'#00ED64', industry:'Database',   size:'~5,400 employees', coverage:12, connCount:2,  expanded:false, relationships:[
+          { member:'Irene',   contact:'Nina Patel (Director DevOps)',       strength:'Medium' },
+        ]},
+      { id:9,  name:'Notion',     ticker:'NTN', color:'#000000', industry:'Productivity',size:'~800 employees',  coverage:8,  connCount:1,  expanded:false, relationships:[
+          { member:'Grayson', contact:'Ryan Walsh (VP Engineering)',        strength:'Medium' },
+        ]},
+      { id:10, name:'Vercel',     ticker:'VCL', color:'#000000', industry:'DevTools',   size:'~650 employees',   coverage:0,  connCount:0,  expanded:false, relationships:[] },
+      { id:11, name:'Plaid',      ticker:'PLD', color:'#000000', industry:'Fintech',    size:'~1,100 employees', coverage:45, connCount:5,  expanded:false, relationships:[
+          { member:'Luke',    contact:'Ben Schwartz (Director Eng)',         strength:'Medium' },
+          { member:'Jessica', contact:'Olivia Monroe (Head of Engineering)', strength:'Unscored' },
+        ]},
+      { id:12, name:'Brex',       ticker:'BRX', color:'#EF4444', industry:'Fintech',    size:'~1,500 employees', coverage:22, connCount:2,  expanded:false, relationships:[
+          { member:'Irene',   contact:'Sofia Alvarez (VP Infrastructure)',   strength:'Weak' },
+        ]},
+      { id:13, name:'Gusto',      ticker:'GST', color:'#F97316', industry:'HR Tech',    size:'~3,000 employees', coverage:18, connCount:2,  expanded:false, relationships:[
+          { member:'Jessica', contact:'James Whitfield (CTO)',              strength:'Unscored' },
+        ]},
+      { id:14, name:'Rippling',   ticker:'RPL', color:'#7C3AED', industry:'HR Tech',    size:'~3,500 employees', coverage:38, connCount:4,  expanded:false, relationships:[
+          { member:'Jason',   contact:'Keiko Tanaka (CIO)',                  strength:'Medium' },
+          { member:'Luke',    contact:'Rachel Kim (VP Engineering)',         strength:'Unscored' },
+        ]},
+    ],
+
+    // Tour steps
+    tourSteps: [
+      { title:'Welcome to Circlepath v3', body:"Your team's relationship intelligence platform — streamlined around what matters. We'll walk you through the key features in 60 seconds.", target:null, arrow:'none', nav:'dashboard' },
+      { title:'Dashboard', body:"Your team's aggregate network at a glance. 47K first connections across 5 team members — see coverage, top matches, and live activity.", target:'dash-metrics', arrow:'top', nav:'dashboard' },
+      { title:'Activity Feed', body:"Stay on top of what's happening across the team — new uploads, ICP matches, scoring activity, and exports, all in one timeline.", target:'dash-activity', arrow:'top', nav:'dashboard' },
+      { title:'ICP Profiles', body:"Define who you're looking for with granular title and firmographic criteria. Circlepath scans your entire team network and surfaces matches instantly.", target:'icp-cards', arrow:'top', nav:'icp' },
+      { title:'Connections View', body:"This is where you'll spend most of your time. Filter by ICP, see relationship strength, score contacts, and build export lists.", target:'conn-filters', arrow:'right', nav:'connections' },
+      { title:'Relationship Scoring', body:"Click 'Score' on any connection for quick two-dropdown scoring: how well do you know them? Best contact method? Plus a 'do not contact' flag.", target:'conn-table', arrow:'top', nav:'connections' },
+      { title:'Export & Activate', body:"Pull your filtered, scored list into CSV and load it into HeyReach or SmartLead for activation. Only strong/medium connections, no DNC contacts.", target:'export-btn', arrow:'top', nav:'connections' },
+    ],
+
+    init() {
+      // small delay so DOM is ready, then start tour
+      setTimeout(() => this.startTour(), 500);
+    },
+
+    setView(v) {
+      this.view = v;
+    },
+
+    get filteredConnections() {
+      return this.connections.filter(c => {
+        if (this.connSearch && !c.name.toLowerCase().includes(this.connSearch.toLowerCase()) && !c.company.toLowerCase().includes(this.connSearch.toLowerCase())) return false;
+        if (this.connStrFilter !== 'All' && c.strength !== this.connStrFilter) return false;
+        if (this.connOwnerFilter.length > 0 && !this.connOwnerFilter.includes(c.via)) return false;
+        return true;
+      });
+    },
+
+    clearConnFilters() {
+      this.connSearch = '';
+      this.connStrFilter = 'All';
+      this.connContactFilter = 'Any';
+      this.connOwnerFilter = ['Jason','Grayson','Irene','Jessica','Luke'];
+      this.connSizeFilter = 'Any';
+    },
+
+    toggleAll() {
+      if (this.selectedConns.length === this.filteredConnections.length) {
+        this.selectedConns = [];
+      } else {
+        this.selectedConns = this.filteredConnections.map(c => c.id);
+      }
+    },
+
+    openScore(conn) {
+      this.scoreTarget = { ...conn };
+      this.scoreModal = true;
+    },
+
+    saveScore() {
+      const knowMap = { "Don't know / Never met":'Unscored', 'Met once / Briefly':'Weak', 'Professional relationship':'Medium', 'Close — would take a call':'Strong', 'Text regularly / Very close':'Strong' };
+      const idx = this.connections.findIndex(c => c.id === this.scoreTarget.id);
+      if (idx !== -1) {
+        this.connections[idx].strength = knowMap[this.scoreTarget.know] || 'Unscored';
+        this.connections[idx].know = this.scoreTarget.know;
+        this.connections[idx].method = this.scoreTarget.method;
+        this.connections[idx].dnc = this.scoreTarget.dnc;
+        this.connections[idx].lastContact = 'Just now';
+      }
+      this.scoreModal = false;
+      this.showToast(`Scored ${this.scoreTarget.name} — ${knowMap[this.scoreTarget.know] || 'updated'}`);
+    },
+    toggleIcpTitle(t) {
+      if (this.newIcp.titles.includes(t)) {
+        this.newIcp.titles = this.newIcp.titles.filter(x => x !== t);
+      } else {
+        this.newIcp.titles.push(t);
+      }
+    },
+
+    addKeyword(e) {
+      const val = e.target.value.trim();
+      if (val && !this.newIcp.keywords.includes(val)) {
+        this.newIcp.keywords.push(val);
+      }
+      e.target.value = '';
+    },
+
+    saveIcp() {
+      if (!this.newIcp.name.trim()) return;
+      this.icpProfiles.push({
+        id: Date.now(),
+        name: this.newIcp.name,
+        matches: 0,
+        created: 'Jul 1, 2026',
+        description: 'Custom ICP profile',
+        chips: [...this.newIcp.titles.slice(0,3), ...this.newIcp.industries.slice(0,2)]
+      });
+      this.newIcp = { name:'', titles:[], seniority:[], industries:[], sizes:[], locations:[], keywords:[] };
+      this.icpModal = false;
+    },
+
+    // helper: format numbers
+    fmt(n) { return n.toLocaleString(); },
+
+    showToast(msg, ms = 3000) {
+      this.toast.message = msg;
+      this.toast.show = true;
+      setTimeout(() => { this.toast.show = false; }, ms);
+    },
+
+    exportCsv() {
+      const rows = this.filteredConnections;
+      const header = 'Name,Title,Company,Connected Via,Strength,Last Contact';
+      const lines = rows.map(r => `"${r.name}","${r.title}","${r.company}",${r.via},${r.strength},"${r.lastContact}"`);
+      const csv = [header, ...lines].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'circlepath-export.csv'; a.click();
+      URL.revokeObjectURL(url);
+      this.showToast(`Exported ${rows.length} connections to CSV`);
+    },
+
+    // ===== TOUR =====
+    startTour() {
+      this.tourActive = true;
+      this.tourStep = 0;
+      this.applyTourStep();
+    },
+
+    tourEnd() {
+      this.tourActive = false;
+      this.tourRect = null;
+      document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+    },
+
+    tourNext() {
+      if (this.tourStep < this.tourSteps.length - 1) {
+        this.tourStep++;
+        this.applyTourStep();
+      } else {
+        this.tourEnd();
+      }
+    },
+
+    tourPrev() {
+      if (this.tourStep > 0) {
+        this.tourStep--;
+        this.applyTourStep();
+      }
+    },
+
+    tourCurrentStep() {
+      return this.tourSteps[this.tourStep] || this.tourSteps[0];
+    },
+
+    applyTourStep() {
+      document.querySelectorAll('.tour-highlighted').forEach(el => el.classList.remove('tour-highlighted'));
+      const step = this.tourCurrentStep();
+      if (step.nav) this.view = step.nav;
+
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (!step.target) {
+            this.tourRect = null;
+            return;
+          }
+          const el = document.getElementById(step.target);
+          if (!el) { this.tourRect = null; return; }
+          el.classList.add('tour-highlighted');
+          const rect = el.getBoundingClientRect();
+          this.tourRect = { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+        }, 80);
+      });
+    },
+
+    tourTooltipClass() {
+      return this.tourStep === 0 ? 'centered' : '';
+    },
+
+    tourTooltipStyle() {
+      if (this.tourStep === 0 || !this.tourRect) return '';
+      const step = this.tourCurrentStep();
+      const r = this.tourRect;
+      const pad = 18;
+      const tooltipH = 180;
+      const tooltipW = 340;
+      const maxLeft = Math.max(8, Math.min(r.left, window.innerWidth - tooltipW - 16));
+      let top, left = maxLeft;
+      if (step.arrow === 'top') {
+        top = r.bottom + pad;
+      } else if (step.arrow === 'bottom') {
+        top = r.top - tooltipH - pad;
+      } else if (step.arrow === 'right') {
+        top = r.top;
+        left = r.right + pad;
+      } else {
+        top = r.bottom + pad;
+      }
+      // Clamp within viewport
+      if (top < 8) top = r.bottom + pad;
+      if (top + tooltipH > window.innerHeight - 8) top = Math.max(8, window.innerHeight - tooltipH - 16);
+      if (left + tooltipW > window.innerWidth - 8) left = window.innerWidth - tooltipW - 16;
+      return `top: ${top}px; left: ${left}px;`;
+    },
+  };
+}
+</script>
+</body>
+</html>
