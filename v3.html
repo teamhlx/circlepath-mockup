@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Circlepath v3 — Relationship Intelligence</title>
+  <title>KeyTies v3 — Relationship Intelligence</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -310,7 +310,7 @@
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         </div>
         <div>
-          <div class="font-bold text-slate-900 text-sm leading-none">Circlepath</div>
+          <div class="font-bold text-slate-900 text-sm leading-none">KeyTies</div>
           <div class="text-[10px] text-slate-400 mt-0.5">v3 · Acme Corp</div>
         </div>
       </div>
@@ -1062,7 +1062,7 @@
           </div>
           <div class="flex-1">
             <div class="text-sm font-semibold text-indigo-900 mb-1">How to Upload Connections</div>
-            <div class="text-xs text-indigo-700 leading-relaxed mb-3">Each team member exports their LinkedIn connections and uploads here. Circlepath enriches contacts with title, company, seniority, and firmographic data, then runs ICP matching automatically.</div>
+            <div class="text-xs text-indigo-700 leading-relaxed mb-3">Each team member exports their LinkedIn connections and uploads here. KeyTies enriches contacts with title, company, seniority, and firmographic data, then runs ICP matching automatically.</div>
             <div class="flex gap-6">
               <div class="flex items-start gap-2">
                 <div class="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold text-indigo-700">1</div>
@@ -1477,10 +1477,10 @@ function app() {
 
     // Tour steps
     tourSteps: [
-      { title:'Welcome to Circlepath v3', body:"Your team's relationship intelligence platform — streamlined around what matters. We'll walk you through the key features in 60 seconds.", target:null, arrow:'none', nav:'dashboard' },
+      { title:'Welcome to KeyTies v3', body:"Your team's relationship intelligence platform — streamlined around what matters. We'll walk you through the key features in 60 seconds.", target:null, arrow:'none', nav:'dashboard' },
       { title:'Dashboard', body:"Your team's aggregate network at a glance. 47K first connections across 5 team members — see coverage, top matches, and live activity.", target:'dash-metrics', arrow:'top', nav:'dashboard' },
       { title:'Activity Feed', body:"Stay on top of what's happening across the team — new uploads, ICP matches, scoring activity, and exports, all in one timeline.", target:'dash-activity', arrow:'top', nav:'dashboard' },
-      { title:'ICP Profiles', body:"Define who you're looking for with granular title and firmographic criteria. Circlepath scans your entire team network and surfaces matches instantly.", target:'icp-cards', arrow:'top', nav:'icp' },
+      { title:'ICP Profiles', body:"Define who you're looking for with granular title and firmographic criteria. KeyTies scans your entire team network and surfaces matches instantly.", target:'icp-cards', arrow:'top', nav:'icp' },
       { title:'Connections View', body:"This is where you'll spend most of your time. Filter by ICP, see relationship strength, score contacts, and build export lists.", target:'conn-filters', arrow:'right', nav:'connections' },
       { title:'Relationship Scoring', body:"Click 'Score' on any connection for quick two-dropdown scoring: how well do you know them? Best contact method? Plus a 'do not contact' flag.", target:'conn-table', arrow:'top', nav:'connections' },
       { title:'Export & Activate', body:"Pull your filtered, scored list into CSV and load it into HeyReach or SmartLead for activation. Only strong/medium connections, no DNC contacts.", target:'export-btn', arrow:'top', nav:'connections' },
@@ -1585,7 +1585,7 @@ function app() {
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'circlepath-export.csv'; a.click();
+      a.href = url; a.download = 'keyties-export.csv'; a.click();
       URL.revokeObjectURL(url);
       this.showToast(`Exported ${rows.length} connections to CSV`);
     },
